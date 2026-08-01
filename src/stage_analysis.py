@@ -72,6 +72,13 @@ def _assert_tiles(spans, where, expect=None):
 
 
 def _merge_setting(setting_dir):
+    """Merge one simulation setting's shards, or refuse if it is not all there.
+
+    Same trap as the real-data path: shards [0,5) ... [0,25) tile perfectly and
+    look complete, so a setting still being computed would be summarised on 25
+    repeats and compared against a 50-repeat published column. Every Table 2
+    setting is 50 repeats, so anything short is refused rather than merged.
+    """
     parts, spans = {}, []
     for path in sorted(glob.glob(os.path.join(setting_dir, "*.json"))):
         lo, hi = (int(x) for x in os.path.basename(path)[:-5].split("_"))
@@ -79,7 +86,7 @@ def _merge_setting(setting_dir):
         for key, val in _load_json(path).items():
             if key != "selected_idx":
                 parts.setdefault(key, []).append(val)
-    _assert_tiles(spans, os.path.basename(setting_dir))
+    _assert_tiles(spans, os.path.basename(setting_dir), expect=P.SIM_REPEATS)
     return parts
 
 
@@ -1445,7 +1452,14 @@ def run(cfg, upstream_root):
     shard_root = os.path.join(root, "results", "shards")
     for d in sorted(glob.glob(os.path.join(shard_root, "*"))):
         name = os.path.basename(d)
-        parts = _merge_setting(d)
+        try:
+            parts = _merge_setting(d)
+        except Truncated as exc:
+            # Still being computed. Left out entirely rather than merged short,
+            # so no claim can be adjudicated on a partial setting.
+            res.setdefault("_incomplete_settings", {})[name] = str(exc)
+            print(f"[analysis] skipping incomplete setting: {exc}", flush=True)
+            continue
         if not parts:
             continue
         n = int(name.split("-n")[1].split("-")[0])

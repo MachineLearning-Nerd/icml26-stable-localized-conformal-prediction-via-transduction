@@ -128,6 +128,9 @@ TABLE2 = {
     },
 }
 
+# Repeats behind every Table 2 setting (Section 5.2).
+SIM_REPEATS = 50
+
 # Repeats behind every Table 1 column (Section 5.1). A reproduction assembled
 # from shards is only comparable to the printed cells at this exact count.
 REAL_REPEATS = 50
