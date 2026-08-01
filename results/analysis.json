@@ -624,6 +624,12 @@
    "job_id": "6a6e2efe6b79c09949c1e7d7",
    "flavor": "cpu-upgrade",
    "minutes_since_launch_at_detection": 21.7
+  },
+  "sim/logabs-n100-m500-w6": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e2e7ba00abefd4b28bbd1",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 26.1
   }
  },
  "transcription_audit": {
@@ -3241,6 +3247,81 @@
    "control_choice": "The gating control is m = n, which removes the quantity Theorem 4.6 credits for the stability gain (O(m^-1 + {n(1+lambda)^2}^-1) against O(n^-1); neither rate contains a shift term). The no-shift arm is reported but does not gate, because 'the gain is shift-driven' is a weaker proposition than the paper asserts and can fail while the method works as claimed. Both arms are published whichever way they land; the choice was registered in repro/artifacts/c5_control_preregistration.md while neither had produced a number."
   },
   "C6": {
+   "certificate": {
+    "certifies": "that the printed proof of Theorem 4.7 does not establish its lower endpoint, and that two stated repairs do",
+    "does_not_certify": "that any run violates the printed band -- the shortfall is in a lower bound on coverage, so it breaks the proof without by itself producing a violating run",
+    "verdict": "VERIFIED",
+    "blocked_by": [],
+    "failed_steps": [],
+    "integrity": {
+     "sweep_separates_the_printed_and_corrected_statements": true,
+     "domain_is_exhaustive_not_sampled": true,
+     "papers_own_configuration_is_inside_the_domain": true
+    },
+    "checks": {
+     "corrected_band_holds_everywhere": true,
+     "printed_upper_endpoint_holds_everywhere": true,
+     "inflating_the_quantile_level_also_repairs_the_lower_endpoint": true
+    },
+    "sweep": {
+     "cells": 978040,
+     "printed_lower_endpoint_failures": 665833,
+     "printed_upper_endpoint_failures": 0,
+     "proof_step_lower_failures": 665833,
+     "proof_step_upper_failures": 114949,
+     "corrected_lower_endpoint_failures": 0,
+     "corrected_upper_endpoint_failures": 0,
+     "first_failing_cell": {
+      "n": 2,
+      "alpha": 0.01,
+      "alpha_tol": 0.005,
+      "guaranteed_lower": 0.666667,
+      "claimed_lower": 0.985
+     },
+     "worst_shortfall": {
+      "n": 2,
+      "alpha": 0.01,
+      "alpha_tol": 0.005,
+      "shortfall": 0.318333,
+      "one_over_n_plus_one": 0.333333
+     }
+    },
+    "corrected_claim": {
+     "as_printed": "coverage in [1-a-a_tol, 1-a+a_tol+(n+1)^-1)",
+     "supported": "coverage in [1-a-a_tol-(n+1)^-1, 1-a+a_tol+(n+1)^-1)",
+     "why": "q_L = Q(1-a-a_tol; F_hat_S^0) is the ceil(n(1-a-a_tol))-th order statistic, so the coverage it guarantees is ceil(n(1-a-a_tol))/(n+1), which falls short of 1-a-a_tol by up to (n+1)^-1. Widening the lower endpoint by that amount makes the statement true, and symmetric.",
+     "alternative_repair": "leave the band as printed and change the selection rule instead: define q_L at the inflated level (1-a-a_tol)(n+1)/n, the same convention Theorem 4.2 already uses in this paper. Verified over the same domain.",
+     "which_is_preferred": "the algorithmic repair, because it keeps the guarantee the paper advertises and costs one line in Algorithm 2; widening the band weakens the result"
+    },
+    "inflated_level_repair": {
+     "failures": 0,
+     "checked": 974732,
+     "out_of_range": 3308
+    },
+    "exposure_window": {
+     "n=30, alpha=0.1, alpha_tol=0.02": {
+      "claimed_lower_endpoint": 0.88,
+      "guaranteed_lower_endpoint": 0.870968,
+      "window_width": 0.009032,
+      "alpha_tol_for_comparison": 0.02
+     },
+     "n=100, alpha=0.1, alpha_tol=0.02": {
+      "claimed_lower_endpoint": 0.88,
+      "guaranteed_lower_endpoint": 0.871287,
+      "window_width": 0.008713,
+      "alpha_tol_for_comparison": 0.02
+     },
+     "n=500, alpha=0.1, alpha_tol=0.02": {
+      "claimed_lower_endpoint": 0.88,
+      "guaranteed_lower_endpoint": 0.878244,
+      "window_width": 0.001756,
+      "alpha_tol_for_comparison": 0.02
+     }
+    },
+    "observed_runs_inside_the_window": [],
+    "note_on_the_upper_endpoint": "the proof's intermediate upper inequality, (k+1)/(n+1) < 1-beta + (n+1)^-1, is also false over much of the domain, but the theorem's upper endpoint survives it: with continuous exchangeable scores the coverage is exactly k/(n+1), not (k+1)/(n+1), and k/(n+1) < 1-beta + (n+1)^-1 does hold everywhere"
+   },
+   "certificate_note": "Reported, not gating. The exhaustive check says the printed lower endpoint 1-alpha-alpha_tol does not follow from the selection rule as Section 3.1 defines it; the supported lower endpoint is lower by up to (n+1)^-1. The claim's verdict is left on the measured band check, because a broken proof of a true statement is not a falsification of the statement.",
    "verdict": "VERIFIED",
    "blocked_by": [],
    "checks": {

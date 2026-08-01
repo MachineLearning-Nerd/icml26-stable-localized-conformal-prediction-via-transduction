@@ -140,8 +140,10 @@ CLAIM4_GLCP_BAND = (20.0, 48.0)
 CLAIM4_CQR_BAND = (6.0, 29.0)
 CLAIM5_TARGETS = {"GLCP": 31.2, "CQR": 16.3}
 
+# The real-data experiments all run at the calibration size Table 1 reports.
+REAL_N = 30
 # Theorem 4.7 guarantee band at alpha=0.1, alpha_tol=0.02, n=30.
-THM47_BAND = (0.88, 0.9 + 0.02 + 1.0 / 31.0)
+THM47_BAND = (0.88, 0.9 + 0.02 + 1.0 / (REAL_N + 1))
 # Annotation bands used for the -/+ superscripts. The two tables do NOT agree:
 #   Table 1 (RealAnalysis/sum_tab.py:34):  [0.9-0.01, 0.901 + 1/n]   -> [0.89, 0.934333]
 #   Table 2 (SimuAnalysis/sum_tab.py:56):  [0.9-0.01, 0.9   + 1/(n+1)] -> [0.89, 0.932258]

@@ -20,6 +20,7 @@ import shard_reduce
 import verify_claim4_band as C4B
 import verify_thm42_certificate as C2C
 import verify_thm46_certificate as C3C
+import verify_thm47_certificate as C6C
 
 MODELS = ["GLCP", "CQR"]
 RNG = np.random.default_rng(20260801)
@@ -1524,6 +1525,16 @@ def _merge_controls(results):
     return merged
 
 
+def _setting_n(tag):
+    """Calibration size behind an observed coverage, read from its own label.
+
+    The simulation labels carry it (`logabs-n30-m500`); the real datasets all run
+    at the paper's n = 30, which is what Table 1 reports.
+    """
+    m = re.search(r"-n(\d+)-", tag)
+    return int(m.group(1)) if m else P.REAL_N
+
+
 def claim6(results):
     """Thm 4.7 band, plus the control that decides whether the band means anything.
 
@@ -1570,8 +1581,23 @@ def claim6(results):
         # The band check must have something to check before it can corroborate.
         "settings_were_observed": bool(obs),
     }
+    # Theorem 4.7's proof is finite arithmetic, so unlike 4.2 and 4.6 it can be
+    # checked over its whole parameter space. Doing so finds that the printed
+    # LOWER endpoint does not follow -- see the certificate. That is a defect in
+    # the guarantee, not a counterexample to it, so it is REPORTED and does not
+    # gate: the shortfall sits in a lower bound on coverage, and a run may still
+    # cover more than the bound promises. Whether any run this campaign measured
+    # actually lands in the exposed window is passed in below and answered.
+    cert = C6C.run({k: (_setting_n(k), v["coverage"]) for k, v in obs.items()})
     checks = {"no_setting_excluded_by_its_confidence_interval": bool(obs) and not excluded}
     return {
+        "certificate": cert,
+        "certificate_note": (
+            "Reported, not gating. The exhaustive check says the printed lower endpoint "
+            "1-alpha-alpha_tol does not follow from the selection rule as Section 3.1 "
+            "defines it; the supported lower endpoint is lower by up to (n+1)^-1. The "
+            "claim's verdict is left on the measured band check, because a broken proof "
+            "of a true statement is not a falsification of the statement."),
         **_adjudicate(checks, integrity),
         "checks": checks,
         "integrity": integrity,
