@@ -20,6 +20,22 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 import upstream  # noqa: E402
 
 
+def _cpu_seconds():
+    """CPU time used by this process and every child it waited on.
+
+    The upstream scripts run in-process, but shelling out is the pattern
+    elsewhere in this repo, so children are included -- counting only RUSAGE_SELF
+    would under-report a stage that forks and make the workload look more serial
+    than it is.
+    """
+    import resource
+    total = 0.0
+    for who in (resource.RUSAGE_SELF, resource.RUSAGE_CHILDREN):
+        ru = resource.getrusage(who)
+        total += ru.ru_utime + ru.ru_stime
+    return total
+
+
 def node_config():
     with open(os.path.join(ROOT, "config", "node.json")) as f:
         return json.load(f)
@@ -79,9 +95,19 @@ def main():
 
     stage = cfg["stage"]
     mod = __import__(f"stage_{stage}")
-    t0 = time.time()
+    t0, c0 = time.time(), _cpu_seconds()
     result = mod.run(cfg, upstream_root)
-    result["wall_seconds"] = round(time.time() - t0, 2)
+    wall = time.time() - t0
+    cpu = _cpu_seconds() - c0
+    result["wall_seconds"] = round(wall, 2)
+    # Allocation is not utilisation. The cgroup grants 8 vCPU and the pools are
+    # pinned to 8, but neither says how many the work actually keeps busy --
+    # small MLP matmuls parallelise poorly, so the honest figure is measured.
+    # cores_busy is CPU-seconds over wall-seconds: 1.0 means effectively serial,
+    # and the ceiling is the quota.
+    result["cpu_seconds"] = round(cpu, 2)
+    result["cores_busy"] = round(cpu / wall, 2) if wall > 0 else None
+    result["cores_available"] = env.get("cgroup_cpu_quota")
     result["environment"] = env
     emit(f"RESULT_{stage.upper()}", result)
 
