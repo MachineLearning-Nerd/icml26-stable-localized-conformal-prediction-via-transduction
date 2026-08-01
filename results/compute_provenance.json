@@ -27,5 +27,11 @@
   "seconds": 1172.3,
   "cores": 2,
   "host": "darwin-arm64"
+ },
+ "real/bio-w7": {
+  "where": "local",
+  "seconds": 1740.9,
+  "cores": 2,
+  "host": "darwin-arm64"
  }
 }

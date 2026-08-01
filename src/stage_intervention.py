@@ -146,40 +146,62 @@ def run(cfg, upstream_root):
         tail_kw = dict(tol_gap=0.001, max_iter=10000, m=200,
                        targ_alpha=targ_alpha, penalty="MSE")
 
-        def fit(unlabeled):
-            """Refit from the same starting tuner; return (theta, diagnostics)."""
+        def fit(unlabeled, opt_seed):
+            """Refit from the same starting tuner; return (theta, diagnostics).
+
+            `opt_seed` fixes the optimiser's own randomness so that the arms
+            differ in exactly one thing -- the unlabeled sample -- except for the
+            floor arm, which differs in exactly the seed.
+            """
+            setseed(opt_seed)
             tuner = deepcopy(slcp.tuner)
             part1, delta = tuner.tune_marginal(
                 calAgent.getX(), calAgent.getS(), unlabeled,
                 5, epoches, 5e-3, int(n_grid), lbd, temperature, **tail_kw)
             return _theta(tuner), float(part1), float(delta)
 
-        th_target, p_target, d_target = fit(semiX)
+        # Reference fit, then three arms sharing one optimiser seed so that only
+        # the unlabeled input differs between them.
+        q0, q1 = seed_rep + 30_000, seed_rep + 40_000
+        th_target, p_target, d_target = fit(semiX, q0)
+        # FLOOR: identical data, different optimiser randomness. Without it the
+        # other two distances have no scale -- a 10,100-dimensional non-convex
+        # fit can land far away for reasons that have nothing to do with data.
+        th_floor, p_floor, d_floor = fit(semiX, q1)
         setseed(seed_rep + 10_000)
         sham_X = generate_agent(m, d, me_s, gamma_s, mu_s, dtype).X
-        th_sham, p_sham, d_sham = fit(sham_X)
+        th_sham, p_sham, d_sham = fit(sham_X, q1)
         setseed(seed_rep + 20_000)
         null_X = generate_agent(m, d, me_t, gamma_t, mu_t, dtype).X
-        th_null, p_null, d_null = fit(null_X)
+        th_null, p_null, d_null = fit(null_X, q1)
 
         scale = float(np.linalg.norm(th_target)) or 1.0
         per_repeat.append({
             "repeat": rep,
             "theta_dim": int(th_target.size),
+            "theta_distance_floor": float(np.linalg.norm(th_floor - th_target)),
             "theta_distance_treatment": float(np.linalg.norm(th_sham - th_target)),
             "theta_distance_null": float(np.linalg.norm(th_null - th_target)),
+            "theta_distance_floor_relative": float(np.linalg.norm(th_floor - th_target) / scale),
             "theta_distance_treatment_relative": float(np.linalg.norm(th_sham - th_target) / scale),
             "theta_distance_null_relative": float(np.linalg.norm(th_null - th_target) / scale),
             # The two statistics the earlier stage used, kept so the change of
             # primary statistic can be audited against the same runs.
-            "discrepancy": {"target": p_target, "sham": p_sham, "null": p_null},
-            "delta_sq_norm": {"target": d_target, "sham": d_sham, "null": d_null},
+            "discrepancy": {"target": p_target, "floor": p_floor,
+                            "sham": p_sham, "null": p_null},
+            "delta_sq_norm": {"target": d_target, "floor": d_floor,
+                              "sham": d_sham, "null": d_null},
         })
 
     treat = [p["theta_distance_treatment"] for p in per_repeat]
     null = [p["theta_distance_null"] for p in per_repeat]
+    floor = [p["theta_distance_floor"] for p in per_repeat]
     rng = np.random.default_rng(0)
     boot = _boot_diff(treat, null, rng)
+    # Does changing the unlabeled sample at all move the solution further than
+    # re-running the optimiser on the same sample? If not, this design has no
+    # power and neither of its comparisons can support a conclusion.
+    power = _boot_diff(null, floor, rng)
 
     disc_t = [abs(p["discrepancy"]["sham"] - p["discrepancy"]["target"]) for p in per_repeat]
     disc_n = [abs(p["discrepancy"]["null"] - p["discrepancy"]["target"]) for p in per_repeat]
@@ -189,13 +211,19 @@ def run(cfg, upstream_root):
         "dtype": dtype, "n": n, "m": m, "reps": n_reps, "lambda": lbd,
         "seconds": round(time.time() - t0, 1),
         "primary_statistic": "||theta_a - theta_b||, the distance between fitted solutions",
+        "mean_theta_distance_floor": float(np.mean(floor)),
         "mean_theta_distance_treatment": float(np.mean(treat)),
         "mean_theta_distance_null": float(np.mean(null)),
-        "paired_bootstrap": boot,
+        "paired_bootstrap_treatment_vs_null": boot,
+        "paired_bootstrap_sample_vs_refit_floor": power,
+        # Whether the design can detect anything at all: changing the unlabeled
+        # sample must move the solution further than re-running the optimiser on
+        # the same sample. If this is false the two comparisons below are noise.
+        "design_has_power": bool(power and power["ci95"][0] > 0),
         # A treatment that moves the solution further than a same-distribution
-        # redraw, with the whole interval above zero, is what makes the unlabeled
-        # TARGET sample load-bearing rather than merely present.
-        "target_sample_is_load_bearing": bool(boot and boot["ci95"][0] > 0),
+        # redraw, with the whole interval above zero, would show the fit responds
+        # to the target *distribution* and not merely to the sample.
+        "distribution_shift_detected": bool(boot and boot["ci95"][0] > 0),
         "secondary_discrepancy_statistic": {
             "mean_treatment_shift": float(np.mean(disc_t)),
             "mean_null_shift": float(np.mean(disc_n)),
