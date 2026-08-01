@@ -1,11 +1,11 @@
 {
   "stage": "simshard",
-  "note": "Table 2 logabs-n30-m100 repeats [10,15); 5-repeat shard for the 1h cap.",
+  "note": "Table 2 logabs-n30-m100 repeats [15,20); 5-repeat shard for the 1h cap.",
   "dtype": "logabs",
   "n": 30,
   "m": 100,
   "shard": [
-    10,
-    15
+    15,
+    20
   ]
 }
