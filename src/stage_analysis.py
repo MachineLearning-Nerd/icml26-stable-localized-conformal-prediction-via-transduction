@@ -212,7 +212,7 @@ def claim3(results):
     for m in (30, 100, 500):
         key = f"logabs-n30-m{m}"
         if key in results["sim"]:
-            m_trend[m] = {
+            m_trend[str(m)] = {
                 model: results["sim"][key]["models"][model]["row"]["ours"]["std"]
                 for model in MODELS
             }
@@ -314,7 +314,7 @@ def claim5(results):
         key = f"logabs-n{n}-m500"
         if key not in results["sim"]:
             continue
-        by_n[n] = {
+        by_n[str(n)] = {
             model: {
                 "std_base": results["sim"][key]["models"][model]["row"]["base"]["std"],
                 "std_ours": results["sim"][key]["models"][model]["row"]["ours"]["std"],
@@ -323,7 +323,7 @@ def claim5(results):
             }
             for model in MODELS
         }
-    if 30 in by_n:
+    if "30" in by_n:
         parts = results["_sim_parts"]["logabs-n30-m500"]
         for mi, model in enumerate(MODELS):
             lam = results["sim"]["logabs-n30-m500"]["models"][model]["selected_lambda_index"]
@@ -337,16 +337,16 @@ def claim5(results):
             target_hit[model] = bool(ci[0] <= t <= ci[1])
 
     largest_at_30 = {
-        model: bool(by_n and by_n[30][model]["pct"] >= max(by_n[n][model]["pct"] for n in by_n))
+        model: bool(by_n and by_n["30"][model]["pct"] >= max(by_n[n][model]["pct"] for n in by_n))
         for model in MODELS
-    } if 30 in by_n else {}
+    } if "30" in by_n else {}
 
     noshift = results.get("noshift")
     control = None
-    if noshift and 30 in by_n:
+    if noshift and "30" in by_n:
         control = {
             model: {
-                "pct_with_shift": by_n[30][model]["pct"],
+                "pct_with_shift": by_n["30"][model]["pct"],
                 "pct_no_shift": noshift["models"][model]["row"]["ours"]["std_improvement_pct"],
             }
             for model in MODELS
@@ -365,7 +365,8 @@ def claim5(results):
         "by_n": by_n,
         "bootstrap_at_n30": boots,
         "largest_gain_at_n30": largest_at_30,
-        "published_cqr_pct_by_n": {n: P.TABLE2[n]["CQR"]["pct"]["ours"] for n in (30, 100, 500)},
+        # string keys: JSON has no integer keys, and these are read back after a round-trip
+        "published_cqr_pct_by_n": {str(n): P.TABLE2[n]["CQR"]["pct"]["ours"] for n in (30, 100, 500)},
         "negative_control_no_shift": control,
     }
 

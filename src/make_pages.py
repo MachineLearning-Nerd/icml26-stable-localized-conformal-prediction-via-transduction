@@ -527,8 +527,8 @@ def _c5(a):
         f"Largest gain at n = 30: {v['largest_gain_at_n30']}",
         "",
         "The claim says the largest gains occur at n = 30. In the **paper's own** CQR column the",
-        f"values are {v['published_cqr_pct_by_n'][30]} / {v['published_cqr_pct_by_n'][100]} / "
-        f"{v['published_cqr_pct_by_n'][500]}% for n = 30/100/500, so the maximum is at n = 100, not",
+        f"values are {v['published_cqr_pct_by_n']['30']} / {v['published_cqr_pct_by_n']['100']} / "
+        f"{v['published_cqr_pct_by_n']['500']}% for n = 30/100/500, so the maximum is at n = 100, not",
         "n = 30 — the wording is exactly right for GLCP and off by 0.4 points for CQR. Reported, not",
         "smoothed over.",
         "",
