@@ -440,5 +440,11 @@
   "job_id": "6a6e3315a00abefd4b28bc4b",
   "flavor": "cpu-upgrade",
   "minutes_since_launch_at_detection": 21.7
+ },
+ "sim/logabs-n500-m500-w1": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e3316a00abefd4b28bc4d",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 23.9
  }
 }
