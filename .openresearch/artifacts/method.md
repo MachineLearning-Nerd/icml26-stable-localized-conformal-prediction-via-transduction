@@ -165,3 +165,29 @@ protected-tree subset check and the secret scan — is exercised before any
 compute is spent. It has already caught: a `sum_tab` import that runs a script
 tail, the authors' non-default `tol=0.01`, the classification datasets' scalar
 local coverage, an integer-key JSON round trip, and the scoring bug above.
+
+## One-hour job ceiling
+
+Every node is capped at one hour of wall time, enforced three ways so no run can
+overrun regardless of how cluster contention moves:
+
+1. **Platform timeout.** `launch.py` passes `timeout="1h"` to `run_job`, so the
+   ceiling is applied by Hugging Face rather than by any projection of mine.
+2. **Watchdog.** `watchdog.py` cancels any tracked job whose *elapsed* time
+   exceeds 3600 s. Elapsed time needs no forecast, which matters because
+   per-repeat cost on this account has been measured to swing between 125 s and
+   3000 s depending on how many other jobs are running.
+3. **Work sized to fit.** Shards are five repeats wide. At the worst rate
+   observed while sizing them (461 s/repeat) that is ~2300 s of loop time plus
+   ~300 s of setup, comfortably inside the hour; at the median (~200 s/repeat)
+   it is ~1300 s.
+
+The cost is real and is recorded rather than hidden: each shard re-trains the
+shared source-side model before its repeat loop, so ten 5-repeat shards repeat
+that fixed setup ten times instead of five. Sharding remains exact — repeats are
+independently seeded `seed + 1 + rep` with all shared state fixed beforehand —
+so the merged 50-repeat statistics are unchanged by the shard width.
+
+Superseded 10-repeat `-s` nodes are cancelled and **not** re-queued; the
+5-repeat `-w` nodes cover the same repeat ranges, and ranges already banked from
+completed 10-repeat shards are skipped rather than recomputed.
