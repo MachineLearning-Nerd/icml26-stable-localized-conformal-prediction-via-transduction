@@ -235,6 +235,11 @@ def _adjudicate(claim_checks, integrity):
     broken = [k for k, v in integrity.items() if not v]
     if broken:
         return {"verdict": "BLOCKED", "blocked_by": broken}
+    # `all({})` is True, so a claim that ended up with no checks at all would be
+    # VERIFIED on no evidence. Claim 5 can drop checks that lack the resolution to
+    # fail, which makes this reachable rather than hypothetical.
+    if not claim_checks:
+        return {"verdict": "BLOCKED", "blocked_by": ["no_check_survived_to_be_evaluated"]}
     return {"verdict": "VERIFIED" if all(claim_checks.values()) else "FALSIFIED",
             "blocked_by": []}
 
@@ -250,13 +255,15 @@ def claim1(results):
     """
     inv = results.get("invariants")
     if not inv:
-        return {"verdict": "BLOCKED", "reason": "invariants node produced no output"}
+        return {"verdict": "BLOCKED", "blocked_by": ["invariants_node_produced_output"],
+                "reason": "invariants node produced no output"}
     obj = inv["objective_identity"]
     path = inv["regularisation_path_unenforced"]
     interv = inv["unlabeled_target_intervention"]
     iv = results.get("intervention")
     if not iv:
-        return {"verdict": "BLOCKED", "reason": "intervention node produced no output"}
+        return {"verdict": "BLOCKED", "blocked_by": ["intervention_node_produced_output"],
+                "reason": "intervention node produced no output"}
     # The refit floor is what makes the distances interpretable: refitting on the
     # SAME unlabeled sample with a different optimiser seed moves theta by exactly
     # zero in every repeat, so `tune_marginal` is a deterministic function of its
