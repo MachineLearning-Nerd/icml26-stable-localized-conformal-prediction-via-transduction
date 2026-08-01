@@ -126,6 +126,21 @@ The transcription of those marginal cells was itself in doubt, since nothing had
 ever checked it, so `verify_transcription.py` was extended to cover every Table 1
 marginal cell and mutation-tested. It passes: the paper does print 0.930.
 
+## Second addendum: CRIME, completed after the above was written
+
+CRIME finished a few hours later and confirms both findings on independent
+evidence, so the conclusion does not rest on one dataset:
+
+- **Std disagreements, outright.** `CRIME/CQR/ours` is published at 0.42 against
+  a reproduced 0.5473 (CI [0.4311, 0.6548]), and `CRIME/GLCP/oracle` at 0.16
+  against 0.1965 (CI [0.1601, 0.2278]). `stds_agree` is false on CRIME on its own
+  terms, with no appeal to resolution.
+- **The Std test is vacuous, demonstrated rather than argued.** On CRIME,
+  inflating the reproduced `base` GLCP set-size spread by 25% did **not** trip
+  the gate. `verify_fidelity_gate.py` exits nonzero on exactly this, which is
+  what a verifier is for: the earlier "0 Std disagreements" on BIO was the
+  absence of resolution, not the presence of agreement.
+
 **Consequence, per the rule above: `marginals_agree` is false, so Claim 4 is
 BLOCKED.** I said there would be no fallback rule and there is none. The
 paper-internal result that TISSUE/GLCP is printed at 13.5% against a claimed
