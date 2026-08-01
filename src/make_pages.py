@@ -61,15 +61,17 @@ def compute_block(prov):
         return "_All nodes ran on Hugging Face `cpu-upgrade`._"
     from collections import Counter
     where = Counter(v.get("where", "?") for v in prov.values())
-    secs = [v.get("seconds", 0) for v in prov.values() if v.get("seconds")]
+    secs = [v["seconds"] for v in prov.values() if v.get("seconds")]
     rows = ["| Where | Nodes | Cores per node | Median node runtime |",
             "| --- | --- | --- | --- |"]
     for w in sorted(where):
         sub = [v for v in prov.values() if v.get("where") == w]
         cores = sorted({str(v.get("cores")) for v in sub})
-        med = sorted(v.get("seconds", 0) for v in sub)
-        med = med[len(med) // 2] if med else 0
-        rows.append(f"| {w} | {where[w]} | {', '.join(cores)} | {med:.0f} s |")
+        # A few early nodes were harvested from job logs that carried no timing
+        # field, so the median is over the nodes that do report one.
+        timed = sorted(v["seconds"] for v in sub if v.get("seconds"))
+        med = f"{timed[len(timed) // 2]:.0f} s" if timed else "not recorded"
+        rows.append(f"| {w} | {where[w]} | {', '.join(cores)} | {med} |")
     total = sum(secs)
     rows += ["", f"Total recorded node time: **{total/3600:.1f} node-hours** across "
                  f"{len(prov)} nodes.",
