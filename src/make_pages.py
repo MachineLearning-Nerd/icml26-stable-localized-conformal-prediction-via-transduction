@@ -783,7 +783,8 @@ def _c4_fidelity(v):
     out = ["", "## Does this reproduction match the printed table?", "",
            tf["rule"],
            "",
-           "The rule was fixed in `repro/.openresearch/artifacts/c4_preregistration.md` and",
+           "The rule was fixed in "
+           "[`repro/artifacts/c4_preregistration.md`](repro/artifacts/c4_preregistration.md) and",
            "committed while STAR, DERMA and TISSUE — 30 of the 50 cells — had produced no numbers,",
            f"so it could not be tuned toward an outcome. Methods tested: "
            f"{', '.join('`' + m + '`' for m in tf['methods_tested'])}.",

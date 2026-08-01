@@ -994,7 +994,7 @@ def claim4(results):
             "to PPI. The precondition was rewritten to test the measured Std and marginal "
             "coverage of five methods per cell instead of one derived ratio. This change was made "
             "after seeing a result that went against the precondition; it was registered in "
-            ".openresearch/artifacts/c4_preregistration.md, and committed while STAR, DERMA and "
+            "repro/artifacts/c4_preregistration.md, and committed while STAR, DERMA and "
             "TISSUE -- 30 of the 50 cells -- had produced no numbers, so it could not be tuned "
             "toward an outcome. Both the old and new comparisons are reported."),
         "reproduced_band_check_used_in_verdict": bool(agreement_power["test_can_discriminate"]),

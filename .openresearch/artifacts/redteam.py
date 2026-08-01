@@ -57,9 +57,17 @@ def page_path(root, slug):
 
 
 def links_in(text):
-    """(page slugs, file paths) referenced by a markdown page."""
+    """(page slugs, file paths) referenced by a markdown page.
+
+    Backticked `repro/...` paths count as file references too. They are not
+    clickable, but they tell the evaluator where to look, and one that points at
+    nothing is the same failure as a dead link -- evidence that is named but not
+    reachable. Only `repro/` is checked: other backticked paths refer to the
+    upstream artifact or to node branches, which are not part of this tree.
+    """
     slugs = set(re.findall(r"\]\(#/([A-Za-z0-9\-_]+)\)", text))
     files = set(re.findall(r"\]\(((?!#|https?:)[^)\s]+)\)", text))
+    files |= {p.rstrip(".,;:") for p in re.findall(r"`(repro/[^`\s]+)`", text)}
     return slugs, files
 
 
