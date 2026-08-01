@@ -15,6 +15,7 @@ import numpy as np
 import published as P
 import real_reduce
 import shard_reduce
+import verify_claim4_band as C4B
 
 MODELS = ["GLCP", "CQR"]
 RNG = np.random.default_rng(20260801)
@@ -906,15 +907,27 @@ def claim4(results):
     reproduces = bool(ran_all and stds_agree and marginals_agree and std_gate_is_informative)
     bands_hold = not viol["reproduced_glcp"] and not viol["reproduced_cqr"]
 
+    # The verdict rides on the printed table, so its preconditions are the ones
+    # that route depends on -- and only those. Requiring the reproduction to match
+    # the table was previously among them; it is not, because no reproduction can
+    # change whether 13.5 < 20. What it stood in for was the real risk -- that the
+    # printed percentages are not the quantity "reduces Std by 20-48%" ranges over
+    # -- and that is now settled directly by identifying the formula instead of
+    # assuming it. See the fourth addendum in c4_preregistration.md.
+    band = C4B.supports()
     integrity = {
-        # A reproduction that does not match the printed table cannot be used to
-        # convict the paper of anything, however its own numbers land.
-        "all_five_datasets_ran": ran_all,
-        "reproduces_published_table_cell_by_cell": bool(reproduces),
-        # The primary route is arithmetic on the paper's printed cells, so those
-        # cells must provably be the paper's. Verified against the archived
-        # source text, not trusted as transcribed.
+        # The printed cells must provably be the paper's, verified against the
+        # archived source text rather than trusted as transcribed.
         "published_table_matches_the_paper_text": _transcription_ok(),
+        # The printed column must be the quantity the claim ranges over. Read as a
+        # plain relative reduction the numbers are materially different, so this is
+        # a live alternative, not a formality.
+        "published_percentages_are_the_paper_formula":
+            band["printed_percentages_are_the_paper_formula"],
+        # Std cells are printed to two decimals; a violation inside that rounding
+        # would be an artefact of the table's precision, not a defect in the claim.
+        "violation_survives_the_printed_rounding":
+            band["every_violation_survives_rounding"],
     }
     checks = {
         # PRIMARY ROUTE -- arithmetic on the paper's own Table 1, which is what the
@@ -924,12 +937,15 @@ def claim4(results):
         "claimed_bands_cover_every_published_cell": not (
             viol["published_glcp"] or viol["published_cqr"]
         ),
-        # `all()` over an empty sweep is True, so the measured cells are collected
-        # first and their count required: a claim about coverage cannot be
-        # corroborated by not having measured any.
-        "marginal_coverage_near_nominal": bool(marg_in_band) and all(marg_in_band),
-        "ours_beats_reference_baseline_everywhere": bool(beats and all(beats)),
     }
+    # The claim quantifies over five datasets, so the measured half of it is only
+    # a check once five datasets exist. On a subset these would be partial
+    # evidence presented as a verdict -- and, passing, would overstate what was
+    # measured. `all()` over an empty sweep is True, so their contents are
+    # required non-empty as well as true.
+    if ran_all:
+        checks["marginal_coverage_near_nominal"] = bool(marg_in_band) and all(marg_in_band)
+        checks["ours_beats_reference_baseline_everywhere"] = bool(beats) and all(beats)
     # SECONDARY ROUTE -- the same test on our own measurements. It is corroboration,
     # not the verdict: the oracle-adjusted percentage is a ratio of two standard
     # deviations estimated from 50 repeats, and its bootstrap interval can easily be
@@ -950,6 +966,19 @@ def claim4(results):
         "band_violations": viol,
         "published_glcp_pct_by_dataset": pub_glcp,
         "published_cqr_pct_by_dataset": pub_cqr,
+        "printed_table_route": band,
+        # Reported, not gating. The reproduction disagreeing with Table 1 is a
+        # result about the paper's reproducibility -- and a substantial one -- but
+        # it is not a precondition for arithmetic on the printed cells, so it must
+        # not silently decide the verdict either way.
+        "reproduction_of_the_printed_table": {
+            "all_five_datasets_ran": ran_all,
+            "reproduces_published_table_cell_by_cell": bool(reproduces),
+            "why_this_does_not_gate_the_verdict":
+                "The verdict is arithmetic on the paper's printed Table 1, which no "
+                "reproduction can alter. This is published as a separate finding "
+                "about whether those printed cells are reproducible at all.",
+        },
         "table_fidelity": {
             "methods_tested": list(FIDELITY_METHODS),
             "stds_agree": stds_agree,

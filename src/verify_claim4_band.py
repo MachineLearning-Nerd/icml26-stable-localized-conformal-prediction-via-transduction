@@ -188,6 +188,49 @@ def check_test_can_pass_and_fail(fails):
         fails.append("the mutation control did not clear the violation")
 
 
+def supports():
+    """The preconditions the printed-table route actually needs, as data.
+
+    `stage_analysis` gates Claim 4's verdict on these, so they are computed here
+    rather than reimplemented there -- one definition, exercised by this file's
+    own run and by the analysis stage alike.
+    """
+    err = {}
+    for name, f in (("paper", _paper_formula),
+                    ("plain", lambda s: (min(s[b] for b in BASELINES) - s["ours"])
+                     / min(s[b] for b in BASELINES) * 100),
+                    ("plain_base", lambda s: (s["base"] - s["ours"]) / s["base"] * 100)):
+        err[name] = sum(abs(f(std) - pub) for _, _, std, pub in _cells()) / 10.0
+    rival = min(err["plain"], err["plain_base"])
+
+    robust = {}
+    for bt in BASE_TYPES:
+        band_lo = BANDS[bt][0]
+        for ds in DATASETS:
+            pub = P.TABLE1[ds][bt]["pct"]["ours"]
+            if not (pub < band_lo - SLACK or pub > BANDS[bt][1] + SLACK):
+                continue
+            std = dict(zip(P.METHODS, P.TABLE1[ds][bt]["std"]))
+            lo, hi, ref = _pct_bounds(std)
+            robust[f"{ds}/{bt}"] = {
+                "printed_pct": pub, "pct_range_under_rounding": [lo, hi],
+                "stated_floor_with_slack": band_lo - SLACK,
+                "a_ref_method": ref, "survives_rounding": bool(hi < band_lo - SLACK)}
+
+    return {
+        "formula_mean_abs_error_pts": err["paper"],
+        "closest_plain_relative_error_pts": rival,
+        "identification_margin": (rival / err["paper"]) if err["paper"] else None,
+        "printed_percentages_are_the_paper_formula": bool(
+            err["paper"] < rival and rival >= 2 * err["paper"]),
+        "violations": robust,
+        "every_violation_survives_rounding": bool(
+            robust and all(v["survives_rounding"] for v in robust.values())),
+        "formula": "(1 - (a1-a0)/(a_ref-a0)) * 100, a_ref = min Std over "
+                   "base/SDCP/PPI with in-range marginal coverage",
+    }
+
+
 def main():
     fails = []
     print("Claim 4 stated bands vs the paper's printed Table 1")
