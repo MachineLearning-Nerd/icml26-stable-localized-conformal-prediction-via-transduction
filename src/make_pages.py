@@ -381,22 +381,57 @@ def _c1(a):
 
 def _c2(a):
     v = a["verdicts"]["C2"]
-    rows = ["| Setting / base | max \\|coverage − 0.9\\| over λ | all λ in band | #λ |",
-            "| --- | --- | --- | --- |"]
+    rows = ["| Setting / base | max \\|coverage − 0.9\\| over λ | λ in band | dev at λ_min | dev at λ_max | #λ |",
+            "| --- | --- | --- | --- | --- | --- |"]
     for k, s in sorted(v["per_setting"].items()):
         rows.append(f"| {k} | {f(s['max_abs_deviation_over_lambda'], 4)} | "
-                    f"{f(s['all_lambda_in_annotation_band'])} | {s['n_lambda']} |")
+                    f"{s['fraction_of_lambda_in_band'] * 100:.0f}% | "
+                    f"{f(s['deviation_at_smallest_lambda'], 4)} | "
+                    f"{f(s['deviation_at_largest_lambda'], 4)} | {s['n_lambda']} |")
+
+    env = ["| Setting / base | fitted C | ε̂ | δ̂_S | held-out max ratio | holds | perm. fits as well |",
+           "| --- | --- | --- | --- | --- | --- | --- |"]
+    for k, e in sorted(v.get("envelope_fits", {}).items()):
+        env.append(f"| {k} | {f(e['fitted_C'], 4)} | {f(e['fitted_eps'], 3)} | "
+                   f"{f(e['fitted_delta_S'], 3)} | {f(e['held_out_max_violation_ratio'], 3)} | "
+                   f"{f(e['envelope_holds_on_held_out'])} | "
+                   f"{e['permuted_fraction_as_good'] * 100:.1f}% |")
+
     dp = ["| Setting / base | DP marginal coverage | inside band |", "| --- | --- | --- |"]
     for k, s in sorted(v["negative_control_DP"]["per_setting"].items()):
         dp.append(f"| {k} | {f(s['marginal'])} | {f(s['in_band'])} |")
+
     return "\n".join([
         "## Coverage across the paper's full λ grid",
         "",
         "Theorem 4.2's operative consequence (Remark 4.3, §3.1) is that marginal coverage is robust",
         "to λ. Every λ on the authors' own grid is evaluated, on the paper's own settings.",
         "",
-        f"Worst deviation anywhere: **{f(v['worst_deviation_over_all_lambda'], 4)}**.",
-        "", "\n".join(rows), "",
+        f"Worst deviation anywhere: **{f(v['worst_deviation_over_all_lambda'], 4)}**; on average",
+        f"**{v['mean_fraction_of_lambda_in_band'] * 100:.0f}%** of the λ grid lands inside the",
+        "table-annotation band.",
+        "",
+        "\n".join(rows), "",
+        "> **Why this is not thresholded at 100%.** Theorem 4.2 bounds the coverage error by an",
+        "> unspecified constant `C`; it does not promise the error stays inside the narrow band the",
+        "> tables use for annotation. Demanding in-band coverage at *every* λ would be stricter than",
+        "> the paper's own statement and would manufacture a falsification. The per-λ deviations are",
+        "> published above so the threshold is inspectable rather than implicit.",
+        "",
+        "## Fitting the theorem's envelope on held-out λ",
+        "",
+        "The bound is `dev ≤ C · min(ε + √λ + 1/n, δ_S + 1/√λ + 1/n)`. Because `C`, `ε` and `δ_S` are",
+        "all unspecified, fitting them on the same λ values used to test would be circular. They are",
+        "fitted on the even-indexed λ values and the worst violation is measured on the odd-indexed",
+        "ones. A held-out ratio ≤ 1 means the envelope fitted elsewhere still covers the data.",
+        "",
+        "\n".join(env), "",
+        "> **Vacuity guard.** Three free parameters and a `min(·,·)` can absorb many curves, so a good",
+        "> held-out fit alone proves little. The last column is a permutation control: the deviations",
+        "> are shuffled across λ and the whole fit repeated 200 times. It reports how often a random",
+        "> λ-to-deviation pairing fits the held-out half as well as the true pairing. A small",
+        "> percentage means the *shape* — not just the level — carries information about λ.",
+        "",
         "## Negative control — direct plug-in (DP), no alignment step",
         "",
         "DP is the same pipeline with the transductive alignment removed. The paper states DP can",
@@ -451,6 +486,24 @@ def _c4(a):
            "Five real datasets, the authors' own splits and 50 repeats. Percentages use the",
            "oracle-adjusted Appendix C.1 formula `(a_ref − a₁)/(a_ref − a₀) × 100`, with `a_ref` the",
            "smallest Std among base/SDCP/PPI whose marginal coverage is in range.", ""]
+    prov = a.get("real_provenance") or {}
+    if any(p.get("mode") == "repeat_shards" for p in prov.values()):
+        out += ["### How the 50 repeats were assembled", "",
+                "`procedure.py` fixes the source predictor, base generator and test-group clustering",
+                "before its repeat loop and seeds each repeat with `seed + 1 + rep`, so repeats are",
+                "independent and a dataset can run as several jobs. The λ that `sum_compare_result`",
+                "selects is still chosen **once on all 50 repeats**: shards ship raw per-key",
+                "aggregates and per-repeat means, and `src/real_reduce.py` rebuilds one 50-repeat",
+                "`resDict` before the authors' selection logic runs. Marginal coverage, mean size and",
+                "Std are reproduced exactly; only the per-group `local_cov` column is an approximation",
+                "(a weighted mean with shard-dependent weights), and it feeds neither the λ selection",
+                "nor any number in this claim.", "",
+                "| Dataset | Assembly | Repeat spans | Repeats |", "| --- | --- | --- | --- |"]
+        for ds in sorted(prov):
+            p_ = prov[ds]
+            spans = ", ".join(f"[{lo},{hi})" for lo, hi in p_.get("shards", [])) or "single job"
+            out.append(f"| {ds} | {p_['mode']} | {spans} | {p_.get('repeats', 50)} |")
+        out.append("")
     for ds, e in v["per_dataset"].items():
         if not e.get("models"):
             out += [f"### {ds} — {e.get('status')}", ""]
