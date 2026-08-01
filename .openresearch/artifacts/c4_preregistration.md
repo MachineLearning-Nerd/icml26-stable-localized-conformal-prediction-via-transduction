@@ -172,6 +172,64 @@ Two things it changes:
 The `stds_agree` / `marginals_agree` conclusion is unchanged, and is now carried
 by three independent datasets rather than one.
 
+## Fourth addendum: the verdict is FALSIFIED, and why that is not a walk-back
+
+The second addendum said the paper-internal result would be "reported as a
+finding and **not** scored, because the precondition it was registered behind did
+not hold." That sentence is in tension with the claim contract registered
+earlier, before any data existed, which says of Claim 4:
+
+> Two independent routes, only one of which needs measurement precision.
+> PRIMARY: the claim cites Table 1 as its evidence, so whether the stated bands
+> cover the PRINTED cells is exact arithmetic — TISSUE/GLCP is printed at 13.5%
+> against a stated floor of 20%. This is independent of any reproduction noise.
+> SECONDARY: the same test on our own measured cells, used only when their
+> bootstrap intervals are narrow enough to resolve the violation; otherwise it
+> is reported but excluded from the verdict.
+
+Both cannot stand. Resolving it in favour of the earlier contract needs an
+argument, not a preference, because the later reading is the stricter one and
+the earlier reading is the one that scores.
+
+**What the precondition was actually protecting against.** Requiring the
+pipeline to reproduce Table 1 was never about the arithmetic `13.5 < 20`, which
+no reproduction can affect. It was a proxy for a real risk: that the printed
+percentages are not the quantity the claim's "reduces … by 20–48%" ranges over.
+"Reduces standard deviation by X%" reads naturally as a plain relative
+reduction, and the paper's printed percentages are an oracle-adjusted quantity
+instead. If the claim meant the plain reading, comparing it to the printed
+column would be a category error, and being unable to reproduce that column was
+a reason to doubt I had identified it correctly.
+
+**That risk is now retired directly, by better evidence than the proxy.**
+`src/verify_claim4_band.py` establishes three things and exits nonzero if any
+fails:
+
+1. The paper states its formula verbatim — improvement is
+   `(1 − (a₁−a₀)/(a_ref−a₀)) × 100%`, with `a_ref` the smallest Std among
+   base/SDCP/PPI whose marginal coverage is in range.
+2. Re-applying that formula to the **printed Std cells** reproduces the printed
+   percentages to a mean of 1.04 points across all ten cells, against 5.22 for
+   the closest plain-relative reading — a factor of 5. The quantity the column
+   reports is identified, not assumed.
+3. The violation survives the printed cells' own rounding. Std values are given
+   to two decimals, so TISSUE/GLCP's true percentage lies in [12.86, 15.28]%.
+   Even its most favourable corner is 4.2 points below the 19.5% floor.
+
+A proxy is superseded when the thing it stood in for is measured directly. That
+is what happened here, and it is why the earlier contract governs.
+
+**What does not change.** `stds_agree` and `marginals_agree` still fail on three
+independent datasets, and the reproduction route stays **BLOCKED**. That result
+is not demoted to a footnote: it is a finding in its own right — Table 1 is
+printed to a precision that 50 repeats do not determine, and its cells did not
+reproduce — and it is published with the same prominence as the falsification.
+The verdict rests on the primary route alone, and the claim page says so.
+
+**The honest summary.** Claim 4 is FALSIFIED: the GLCP half of a conjunctive
+claim is contradicted by the paper's own Table 1. The CQR half (6–29%) holds on
+every dataset, and is reported as holding.
+
 ## Disclosure
 
 This restructuring was decided **after** seeing BIO/CQR fail the previous
