@@ -12,7 +12,7 @@ This verifier exits nonzero when any claim is below full credit.
 | C5 | VERIFIED | — |
 | C6 | VERIFIED | — |
 
-Settings merged: logabs-n30-m100, logabs-n30-m30, logabs-n30-m500
+Settings merged: logabs-n100-m500, logabs-n30-m100, logabs-n30-m30, logabs-n30-m500
 Datasets: BIO, CRIME, DERMA
 Claims below full credit: C3
 Verifier exit code: 1

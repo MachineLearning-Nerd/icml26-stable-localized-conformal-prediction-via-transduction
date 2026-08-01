@@ -789,6 +789,30 @@ def claim3(results):
             "parts (a) and (c) of the claim completely and part (b)'s algebraic "
             "skeleton only. What the certificate does not reach is listed by name "
             "rather than left to be assumed."),
+        # Written while only n = 30 and n = 100 had landed, so the slope was
+        # still `null` and this could not be shaped to whatever n = 500 gave.
+        # It changes no gate; the registered check is unchanged.
+        "big_o_versus_theta": {
+            "the_claim_says": "O(n^-1)",
+            "the_gate_tests": "that a bootstrapped log-log slope interval contains -1",
+            "these_are_not_the_same_thing": (
+                "O(n^-1) is an upper bound: a variance decaying FASTER than n^-1 satisfies it. "
+                "The gate is the stricter Theta(n^-1) reading, and it is kept because the "
+                "claim's force comes from a comparison -- standard O(n^-1) against StCP's "
+                "O(m^-1 + {n(1+lambda)^2}^-1) -- and that comparison only bites if the "
+                "standard rate is the rate rather than merely an upper bound on it."),
+            "so_a_slope_steeper_than_minus_one": (
+                "fails the gate without contradicting the printed theorem. If that is what "
+                "the sweep shows, the honest reading is that Theorem 4.6's Case 1 bound holds "
+                "and is not tight on this DGP at these n, not that the theorem is false; a "
+                "steeper slope is reported as such and never as a falsification."),
+            "a_known_finite_sample_reason_it_could_be_steeper": (
+                "the conformal quantile sits at order statistic ceil(n*(1-alpha_n)) -- 28 of "
+                "30 at n=30 against 91 of 100 at n=100 -- so the small-n estimator sits "
+                "relatively deeper in the tail, where the density is lower and quantile "
+                "variance is inflated. That inflates the n=30 end and steepens a two-point "
+                "fit without saying anything about the asymptotic rate."),
+        },
         "slope_informativeness": {
             "ci95": ci,
             "excludes_no_decay": slope_informative,

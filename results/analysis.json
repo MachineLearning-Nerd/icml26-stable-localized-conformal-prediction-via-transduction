@@ -1,6 +1,7 @@
 {
  "kind": "analysis",
  "settings_merged": [
+  "logabs-n100-m500",
   "logabs-n30-m100",
   "logabs-n30-m30",
   "logabs-n30-m500"
@@ -636,6 +637,24 @@
    "job_id": "6a6e33156b79c09949c1e830",
    "flavor": "cpu-upgrade",
    "minutes_since_launch_at_detection": 13.1
+  },
+  "sim/logabs-n100-m500-w9": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e3315a00abefd4b28bc4b",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 21.7
+  },
+  "sim/logabs-n500-m500-w1": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e3316a00abefd4b28bc4d",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 23.9
+  },
+  "sim/logabs-n500-m500-w5": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e34a76b79c09949c1e87e",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 19.4
   }
  },
  "transcription_audit": {
@@ -1126,9 +1145,23 @@
     "envelope_shape_beats_permutation_control": false,
     "negative_control_DP_leaves_band": false
    },
-   "worst_deviation_over_all_lambda": 0.010457083885999974,
+   "worst_deviation_over_all_lambda": 0.014917658624000185,
    "mean_fraction_of_lambda_in_band": 1.0,
    "per_setting": {
+    "logabs-n100-m500/GLCP": {
+     "max_abs_deviation_over_lambda": 0.014917658624000185,
+     "fraction_of_lambda_in_band": 1.0,
+     "n_lambda": 19,
+     "deviation_at_smallest_lambda": 0.002951579930000059,
+     "deviation_at_largest_lambda": 0.014917658624000185
+    },
+    "logabs-n100-m500/CQR": {
+     "max_abs_deviation_over_lambda": 0.0018648339880000808,
+     "fraction_of_lambda_in_band": 1.0,
+     "n_lambda": 19,
+     "deviation_at_smallest_lambda": 0.0015701692719999327,
+     "deviation_at_largest_lambda": 8.020683999987455e-05
+    },
     "logabs-n30-m100/GLCP": {
      "max_abs_deviation_over_lambda": 0.005053110285999862,
      "fraction_of_lambda_in_band": 1.0,
@@ -1343,13 +1376,15 @@
     "fitted_delta_S": 0.0,
     "held_out_max_violation_ratio": 1.116379031934365,
     "envelope_holds_on_held_out": false,
-    "permuted_median_ratio": 0.9323881999562467,
-    "permuted_fraction_as_good": 0.825,
-    "n_train": 60,
-    "n_test": 54,
+    "permuted_median_ratio": 0.9191689248073691,
+    "permuted_fraction_as_good": 0.72,
+    "n_train": 80,
+    "n_test": 72,
     "n_perm": 200,
-    "n_blocks": 6,
+    "n_blocks": 8,
     "blocks": [
+     "logabs-n100-m500/GLCP",
+     "logabs-n100-m500/CQR",
      "logabs-n30-m100/GLCP",
      "logabs-n30-m100/CQR",
      "logabs-n30-m30/GLCP",
@@ -1359,14 +1394,38 @@
     ]
    },
    "envelope_fits": {
+    "logabs-n100-m500/GLCP": {
+     "fitted_C": 0.01802583868556241,
+     "fitted_eps": 0.2,
+     "fitted_delta_S": 0.0,
+     "held_out_max_violation_ratio": 1.0174298530876702,
+     "envelope_holds_on_held_out": false,
+     "permuted_median_ratio": 0.9493205860418304,
+     "permuted_fraction_as_good": 0.575,
+     "n_train": 10,
+     "n_test": 9,
+     "n_perm": 200
+    },
+    "logabs-n100-m500/CQR": {
+     "fitted_C": 0.007855699086932384,
+     "fitted_eps": 0.2,
+     "fitted_delta_S": 0.0,
+     "held_out_max_violation_ratio": 0.955005821887553,
+     "envelope_holds_on_held_out": true,
+     "permuted_median_ratio": 0.944282264465361,
+     "permuted_fraction_as_good": 0.54,
+     "n_train": 10,
+     "n_test": 9,
+     "n_perm": 200
+    },
     "logabs-n30-m100/GLCP": {
      "fitted_C": 0.0168341698021295,
      "fitted_eps": 0.2,
      "fitted_delta_S": 0.0,
      "held_out_max_violation_ratio": 0.6601413140109162,
      "envelope_holds_on_held_out": true,
-     "permuted_median_ratio": 0.9397164825041348,
-     "permuted_fraction_as_good": 0.125,
+     "permuted_median_ratio": 0.9770134805319788,
+     "permuted_fraction_as_good": 0.13,
      "n_train": 10,
      "n_test": 9,
      "n_perm": 200
@@ -1377,8 +1436,8 @@
      "fitted_delta_S": 0.0,
      "held_out_max_violation_ratio": 0.7317134689447462,
      "envelope_holds_on_held_out": true,
-     "permuted_median_ratio": 0.9821486131641777,
-     "permuted_fraction_as_good": 0.275,
+     "permuted_median_ratio": 0.8982734306136775,
+     "permuted_fraction_as_good": 0.345,
      "n_train": 10,
      "n_test": 9,
      "n_perm": 200
@@ -1389,8 +1448,8 @@
      "fitted_delta_S": 0.0,
      "held_out_max_violation_ratio": 0.7195433468271286,
      "envelope_holds_on_held_out": true,
-     "permuted_median_ratio": 0.9707562615519842,
-     "permuted_fraction_as_good": 0.24,
+     "permuted_median_ratio": 0.9543067862858206,
+     "permuted_fraction_as_good": 0.225,
      "n_train": 10,
      "n_test": 9,
      "n_perm": 200
@@ -1401,8 +1460,8 @@
      "fitted_delta_S": 0.0,
      "held_out_max_violation_ratio": 0.6317102188527117,
      "envelope_holds_on_held_out": true,
-     "permuted_median_ratio": 0.902630751972179,
-     "permuted_fraction_as_good": 0.27,
+     "permuted_median_ratio": 0.9744398303505013,
+     "permuted_fraction_as_good": 0.225,
      "n_train": 10,
      "n_test": 9,
      "n_perm": 200
@@ -1413,8 +1472,8 @@
      "fitted_delta_S": 0.0,
      "held_out_max_violation_ratio": 1.116379031934365,
      "envelope_holds_on_held_out": false,
-     "permuted_median_ratio": 0.9266031214718262,
-     "permuted_fraction_as_good": 0.815,
+     "permuted_median_ratio": 0.9149901475455946,
+     "permuted_fraction_as_good": 0.82,
      "n_train": 10,
      "n_test": 9,
      "n_perm": 200
@@ -1425,8 +1484,8 @@
      "fitted_delta_S": 0.0,
      "held_out_max_violation_ratio": 0.39657760292301997,
      "envelope_holds_on_held_out": true,
-     "permuted_median_ratio": 0.8396562783366331,
-     "permuted_fraction_as_good": 0.22,
+     "permuted_median_ratio": 0.8688015141489149,
+     "permuted_fraction_as_good": 0.225,
      "n_train": 10,
      "n_test": 9,
      "n_perm": 200
@@ -1435,6 +1494,14 @@
    "envelope_note": "The pooled fit is the gate: one (C, eps, delta_S) must cover every setting at once, so the three parameters face every lambda point in the campaign rather than ten. The per-setting fits are kept because their permutation control is what showed the per-setting test carried no information, and that negative result is part of the evidence.",
    "negative_control_DP": {
     "per_setting": {
+     "logabs-n100-m500/GLCP": {
+      "marginal": 0.9232880518800002,
+      "in_band": true
+     },
+     "logabs-n100-m500/CQR": {
+      "marginal": 0.9192525918640001,
+      "in_band": true
+     },
      "logabs-n30-m100/GLCP": {
       "marginal": 0.9104734420720001,
       "in_band": true
@@ -1524,10 +1591,12 @@
    },
    "base_variance_vs_n": {
     "n": [
-     30
+     30,
+     100
     ],
     "variance": [
-     1.2200748186815582
+     1.2200748186815582,
+     0.20315810539523882
     ],
     "loglog_slope": null,
     "slope_ci95": null,
@@ -1800,12 +1869,31 @@
     "seed": 0
    },
    "route_note": "Two routes, both required. Theorem 4.6 is universally quantified over distributions, n, m and lambda, so the simulation below is scoped corroboration and cannot carry the claim alone; the certificate covers parts (a) and (c) of the claim completely and part (b)'s algebraic skeleton only. What the certificate does not reach is listed by name rather than left to be assumed.",
+   "big_o_versus_theta": {
+    "the_claim_says": "O(n^-1)",
+    "the_gate_tests": "that a bootstrapped log-log slope interval contains -1",
+    "these_are_not_the_same_thing": "O(n^-1) is an upper bound: a variance decaying FASTER than n^-1 satisfies it. The gate is the stricter Theta(n^-1) reading, and it is kept because the claim's force comes from a comparison -- standard O(n^-1) against StCP's O(m^-1 + {n(1+lambda)^2}^-1) -- and that comparison only bites if the standard rate is the rate rather than merely an upper bound on it.",
+    "so_a_slope_steeper_than_minus_one": "fails the gate without contradicting the printed theorem. If that is what the sweep shows, the honest reading is that Theorem 4.6's Case 1 bound holds and is not tight on this DGP at these n, not that the theorem is false; a steeper slope is reported as such and never as a falsification.",
+    "a_known_finite_sample_reason_it_could_be_steeper": "the conformal quantile sits at order statistic ceil(n*(1-alpha_n)) -- 28 of 30 at n=30 against 91 of 100 at n=100 -- so the small-n estimator sits relatively deeper in the tail, where the density is lower and quantile variance is inflated. That inflates the n=30 end and steepens a two-point fit without saying anything about the asymptotic rate."
+   },
    "slope_informativeness": {
     "ci95": null,
     "excludes_no_decay": false,
     "note": "A bootstrap interval that contains -1 is only evidence for an n^-1 rate if it also rules out no decay at all; otherwise the check passes on any sufficiently noisy sweep. Both conditions are reported."
    },
    "std_vs_lambda": {
+    "logabs-n100-m500/GLCP": {
+     "std_at_smallest_valid_lambda": 0.4969477298914104,
+     "std_at_largest_valid_lambda": 0.41864992474134477,
+     "decreases": true,
+     "n_valid_lambda": 19
+    },
+    "logabs-n100-m500/CQR": {
+     "std_at_smallest_valid_lambda": 0.4915043615061105,
+     "std_at_largest_valid_lambda": 0.3740026675077881,
+     "decreases": true,
+     "n_valid_lambda": 19
+    },
     "logabs-n30-m100/GLCP": {
      "std_at_smallest_valid_lambda": 1.1414455122321672,
      "std_at_largest_valid_lambda": 0.8091197728450933,
@@ -3150,6 +3238,20 @@
       "pct": 22.52378924735416,
       "pct_published": 16.3
      }
+    },
+    "100": {
+     "GLCP": {
+      "std_base": 0.4507306350751398,
+      "std_ours": 0.3630858123042151,
+      "pct": 19.445055638677346,
+      "pct_published": 23.2
+     },
+     "CQR": {
+      "std_base": 0.49294972653834485,
+      "std_ours": 0.3740026675077881,
+      "pct": 24.12965311206117,
+      "pct_published": 16.7
+     }
     }
    },
    "bootstrap_at_n30": {
@@ -3190,7 +3292,7 @@
    },
    "largest_gain_at_n30": {
     "GLCP": true,
-    "CQR": true
+    "CQR": false
    },
    "largest_gain_ordering": {
     "GLCP": {
@@ -3200,7 +3302,16 @@
       "500": 26.6
      },
      "published_argmax_n": 30,
-     "published_supports_n30": true
+     "published_supports_n30": true,
+     "closest_rival_n": 100,
+     "reproduced_pct_gap_n30_minus_rival": 23.14073597158952,
+     "gap_ci95": [
+      0.12111214368936223,
+      44.96630251350102
+     ],
+     "n30_strictly_largest_at_95pct": true,
+     "rival_strictly_larger_at_95pct": false,
+     "ordering_unresolvable": false
     },
     "CQR": {
      "published_pct_by_n": {
@@ -3209,7 +3320,16 @@
       "500": 6.3
      },
      "published_argmax_n": 100,
-     "published_supports_n30": false
+     "published_supports_n30": false,
+     "closest_rival_n": 100,
+     "reproduced_pct_gap_n30_minus_rival": -1.2815242784449143,
+     "gap_ci95": [
+      -11.068325273848266,
+      8.582792026570454
+     ],
+     "n30_strictly_largest_at_95pct": false,
+     "rival_strictly_larger_at_95pct": false,
+     "ordering_unresolvable": true
     }
    },
    "bootstrap_pct_by_n": {
@@ -3227,6 +3347,24 @@
      "ci95_pct": [
       15.212554009829015,
       31.15606325810262
+     ],
+     "n_repeats": 50,
+     "n_boot": 2000
+    },
+    "GLCP@100": {
+     "bootstrap_mean_pct": 19.006743868847884,
+     "ci95_pct": [
+      3.4529368045695796,
+      33.17477464149271
+     ],
+     "n_repeats": 50,
+     "n_boot": 2000
+    },
+    "CQR@100": {
+     "bootstrap_mean_pct": 24.128852286814276,
+     "ci95_pct": [
+      18.153638208644974,
+      30.085144444011693
      ],
      "n_repeats": 50,
      "n_boot": 2000
@@ -3257,7 +3395,7 @@
       "claim_says_argmax_is_n30": true,
       "published_table_agrees": false,
       "disagreement_survives_the_printed_rounding": true,
-      "this_reproduction_puts_the_maximum_at_n30": true
+      "this_reproduction_puts_the_maximum_at_n30": false
      }
     },
     "needs_repair": true,
@@ -3377,12 +3515,30 @@
     0.952258064516129
    ],
    "observed": {
+    "sim:logabs-n100-m500/GLCP": {
+     "coverage": 0.9109057113740002,
+     "in_band": true,
+     "coverage_ci95": [
+      0.9043974380660998,
+      0.91712167753895
+     ],
+     "excluded_by_ci": false
+    },
+    "sim:logabs-n100-m500/CQR": {
+     "coverage": 0.900843703794,
+     "in_band": true,
+     "coverage_ci95": [
+      0.8935555859571999,
+      0.9078461341170501
+     ],
+     "excluded_by_ci": false
+    },
     "sim:logabs-n30-m100/GLCP": {
      "coverage": 0.910380164338,
      "in_band": true,
      "coverage_ci95": [
-      0.8979081336517999,
-      0.9213594560372501
+      0.8981938570884,
+      0.9215406737131498
      ],
      "excluded_by_ci": false
     },
@@ -3390,8 +3546,8 @@
      "coverage": 0.901706160092,
      "in_band": true,
      "coverage_ci95": [
-      0.8878366579850501,
-      0.91460217158775
+      0.8876719123792001,
+      0.9141305893467502
      ],
      "excluded_by_ci": false
     },
@@ -3399,8 +3555,8 @@
      "coverage": 0.913165107136,
      "in_band": true,
      "coverage_ci95": [
-      0.89931602452145,
-      0.9250639625317001
+      0.9000135679459499,
+      0.9245519902003
      ],
      "excluded_by_ci": false
     },
@@ -3408,8 +3564,8 @@
      "coverage": 0.902085819112,
      "in_band": true,
      "coverage_ci95": [
-      0.8877198957896,
-      0.9151717001327501
+      0.8876933438548499,
+      0.91544338382065
      ],
      "excluded_by_ci": false
     },
@@ -3417,8 +3573,8 @@
      "coverage": 0.9114307453619999,
      "in_band": true,
      "coverage_ci95": [
-      0.8997783820310999,
-      0.9225086814141001
+      0.8995359776902501,
+      0.9230081352523001
      ],
      "excluded_by_ci": false
     },
@@ -3426,8 +3582,8 @@
      "coverage": 0.8981943330219999,
      "in_band": true,
      "coverage_ci95": [
-      0.8844111374778,
-      0.9103146202685001
+      0.8842473360115001,
+      0.9113657393846499
      ],
      "excluded_by_ci": false
     },
@@ -3435,8 +3591,8 @@
      "coverage": 0.9092,
      "in_band": true,
      "coverage_ci95": [
-      0.89648,
-      0.92192
+      0.89616,
+      0.9216400000000001
      ],
      "excluded_by_ci": false
     },
@@ -3444,8 +3600,8 @@
      "coverage": 0.9091200000000002,
      "in_band": true,
      "coverage_ci95": [
-      0.8969570000000001,
-      0.9206830000000001
+      0.8960390000000001,
+      0.920884
      ],
      "excluded_by_ci": false
     },
@@ -3453,8 +3609,8 @@
      "coverage": 0.9008,
      "in_band": true,
      "coverage_ci95": [
-      0.8854000000000001,
-      0.9158
+      0.884995,
+      0.9158049999999999
      ],
      "excluded_by_ci": false
     },
@@ -3462,8 +3618,8 @@
      "coverage": 0.8962000000000001,
      "in_band": true,
      "coverage_ci95": [
-      0.8794,
-      0.9118
+      0.8798,
+      0.9126000000000001
      ],
      "excluded_by_ci": false
     },
@@ -3471,8 +3627,8 @@
      "coverage": 0.9242800000000001,
      "in_band": true,
      "coverage_ci95": [
-      0.912079,
-      0.936281
+      0.9111580000000001,
+      0.936401
      ],
      "excluded_by_ci": false
     },
@@ -3480,13 +3636,13 @@
      "coverage": 0.9382400000000002,
      "in_band": true,
      "coverage_ci95": [
-      0.918354,
-      0.9547199999999999
+      0.9204000000000001,
+      0.9541200000000001
      ],
      "excluded_by_ci": false
     }
    },
-   "n_settings": 12,
+   "n_settings": 14,
    "outside_band_point_estimate": [],
    "excluded_by_confidence_interval": [],
    "negative_control": {

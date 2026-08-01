@@ -1036,6 +1036,32 @@ def _c3_certificate(v):
     ])
 
 
+def _c3_big_o(v):
+    """The O-versus-Theta distinction, written before n = 500 landed.
+
+    A reader who sees a slope away from -1 needs to know which reading the gate
+    uses and what a steeper slope would and would not mean. Putting that only in
+    the losing case would be arguing after the fact.
+    """
+    b = v.get("big_o_versus_theta")
+    if not b:
+        return ""
+    return "\n".join([
+        "> **What the gate reads `O(n⁻¹)` as, and why.** The claim states "
+        f"`{b['the_claim_says']}`; the gate tests {b['the_gate_tests']}. "
+        f"{b['these_are_not_the_same_thing']}",
+        ">",
+        f"> **So a slope steeper than −1** {b['so_a_slope_steeper_than_minus_one']}",
+        ">",
+        f"> **One known finite-sample reason it could be steeper:** "
+        f"{b['a_known_finite_sample_reason_it_could_be_steeper']}",
+        ">",
+        "> This paragraph was written and committed while only n = 30 and n = 100 had finished,",
+        "> with the slope still `null`, so it is not a reading invented to fit whatever n = 500",
+        "> produced. The registered check is unchanged either way.",
+    ])
+
+
 def _c3(a):
     v = a["verdicts"]["C3"]
     bv = v["base_variance_vs_n"]
@@ -1066,6 +1092,8 @@ def _c3(a):
         "", "\n".join(rows), "",
         f"log–log slope = **{f(bv['loglog_slope'], 3)}**, 95% CI "
         f"[{f(ci[0], 3) if ci else '—'}, {f(ci[1], 3) if ci else '—'}]; the theorem predicts −1.",
+        "",
+        _c3_big_o(v),
         "",
         "## Rate 2 — StCP variance decreases in λ",
         "",
