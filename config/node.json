@@ -1,15 +1,15 @@
 {
   "stage": "real",
-  "note": "Table 1 CRIME column at the authors' committed defaults. Repeats [45,50); 5-repeat shard to fit the 1h job cap.",
-  "dataset": "CRIME",
-  "script": "Crime.py",
+  "note": "Table 1 BIO column at the authors' committed defaults. Repeats [0,5); 5-repeat shard to fit the 1h job cap.",
+  "dataset": "BIO",
+  "script": "Protein.py",
   "argv": [],
-  "result_dir": "Real_Crime",
-  "result_name": "P_60_500_1334_0_15",
+  "result_dir": "Real_Protein",
+  "result_name": "P_60_1000_2000_4",
   "n_reported": 30,
-  "n_over_m": "30/500",
+  "n_over_m": "30/1000",
   "shard": [
-    45,
-    50
+    0,
+    5
   ]
 }
