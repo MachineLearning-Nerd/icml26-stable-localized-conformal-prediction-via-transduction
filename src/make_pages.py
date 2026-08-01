@@ -440,7 +440,49 @@ def build_tree(out_dir, analysis):
         lines.append(f"| [{c['title']}](#/{c['slug']}) |")
     with open(os.path.join(out_dir, "pages", "index.md"), "w") as fh:
         fh.write("\n".join(lines) + "\n")
+
+    _banner_historical_pages(out_dir)
     return ["logbook.json", "pages/index.md"]
+
+
+SUPERSEDED_BANNER = """> ### {label}
+>
+> **This page is superseded and its numbers are no longer current.** It is the
+> clean-room numpy logbook that the live judge rated 5/12, retained unchanged
+> below this line because the campaign preserves rejected evidence rather than
+> deleting it.
+>
+> Nothing on this page should be read as a current result. In particular the
+> summary below reports a claim count, a runtime and a scope that the full-scale
+> reproduction has replaced. Start instead at
+> **Current verification — full-scale reproduction**, which is the first entry in
+> the navigation, or at the per-claim pages.
+"""
+
+
+def _banner_historical_pages(out_dir):
+    """Mark the superseded pages in their own body, not only in the navigation.
+
+    The nav title already carries the label, but a reader who opens
+    `pages/conclusion/page.md` directly sees an executive summary claiming "0/0
+    claim checks PASS", a sub-minute runtime and "no toy/proxy results" -- all
+    true of the rejected baseline and none of it true now. A label that is
+    visible only one level up is not a label.
+
+    The banner is prepended; nothing existing is edited or removed, so the
+    preserved content stays byte-identical below it. Re-running is idempotent.
+    """
+    for slug in sorted(HISTORICAL):
+        path = os.path.join(out_dir, "pages", slug, "page.md")
+        if not os.path.exists(path):
+            continue
+        with open(path) as fh:
+            text = fh.read()
+        if HISTORICAL_LABEL in text:
+            continue
+        with open(path, "w") as fh:
+            fh.write(SUPERSEDED_BANNER.format(label=HISTORICAL_LABEL) + "\n" + text)
+
 
 
 def _c1_intervention(a, it):
