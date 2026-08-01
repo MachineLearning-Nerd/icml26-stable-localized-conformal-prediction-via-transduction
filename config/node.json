@@ -1,6 +1,6 @@
 {
   "stage": "real",
-  "note": "Table 1 STAR column; needs 60 10 1 1 to select the published target agent. Repeats [20,25); 5-repeat shard to fit the 1h job cap.",
+  "note": "Table 1 STAR column; needs 60 10 1 1 to select the published target agent. Repeats [25,30); 5-repeat shard to fit the 1h job cap.",
   "dataset": "STAR",
   "script": "Achieve.py",
   "argv": [
@@ -24,7 +24,7 @@
   ],
   "deviation": "The artifact ships Dataset/achieve.csv, a labelled CSV export of STAR_Students.sav, but Achieve.py reads the .sav, which the artifact does not contain. One exact-string substitution swaps the reader and restores the categorical dtype that pd.read_spss would have produced (read_csv yields plain strings, so the script's .cat accessor fails). Equivalence checks: 11601x379; identical string categories (RURAL/INNER CITY/SUBURBAN/URBAN, MALE/FEMALE, ...); 3754 rows with non-null hsacttot = 1308 target + 2446 auxiliary, which reproduces the authors' own result-file name P_60_1048_2446_10_1_1 (m = 1308-60-200 = 1048, N = 2446). Category ORDER is immaterial here because the script re-encodes each category by its frequency rank (cat.codes.value_counts() is frequency-sorted), so the resulting numeric features are invariant to whether categories are ordered by SPSS label code or alphabetically.",
   "shard": [
-    20,
-    25
+    25,
+    30
   ]
 }
