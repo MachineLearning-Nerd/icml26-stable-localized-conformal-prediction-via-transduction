@@ -1,0 +1,130 @@
+{
+  "paper": "Stable Localized Conformal Prediction via Transduction",
+  "arxiv": "2605.01452",
+  "source_sha256": "d07bc37a6a81e0c74aef488fd566dfe5ebf4e0b94ad526c3449334000c2741a2",
+  "source_url": "https://ar5iv.labs.arxiv.org/html/2605.01452",
+  "upstream_artifact": "https://github.com/OswinMin/StCP",
+  "upstream_sha": "1d8df7614d49eada881426742688ba75fec631b9",
+  "nominal_level": 0.9,
+  "repeats": 50,
+  "claims": [
+    {
+      "id": "C1",
+      "index": 0,
+      "prior_verdict": "toy",
+      "anchor": "Equation 7, Section 3, Algorithm 1",
+      "statement": "StCP/SLCP uses a conditional CDF estimator trained on labeled source-task data plus an empirical marginal distribution estimated from unlabeled target data, calibrated via a regularized optimization with parameter lambda.",
+      "machine_checkable_contract": {
+        "must_hold": [
+          "F_hat_S|X is fitted on labeled SOURCE data only (target labels never enter it)",
+          "F_hat_S^1(s) is an average of F over the m UNLABELED target covariates only",
+          "F_hat_S^0 is the empirical CDF of the n labeled target calibration scores",
+          "the calibrated F~ solves argmin d(F_hat_S^0, F_hat_S^1(.;F~)) + lambda*R(F~, F_hat_S|X)",
+          "at lambda = 0 the StCP quantile equals the standard conformal quantile of F_hat_S^0 to within the finite quantile grid resolution",
+          "as lambda grows the calibrated parameter moves monotonically back toward theta_hat (the source estimator)",
+          "the pipeline runs end to end on all five of the paper's real datasets and produces valid prediction sets"
+        ],
+        "fails_if": "any of the above is violated on the paper's own datasets at the paper's own scale"
+      },
+      "evidence_plan": "Instrument the authors' own implementation on all five Table 1 datasets plus the LogAbs simulation; assert the data-flow invariants above by construction-tracing, and measure the lambda=0 identity and the lambda->infinity limit numerically."
+    },
+    {
+      "id": "C2",
+      "index": 1,
+      "prior_verdict": "toy",
+      "anchor": "Theorem 4.2 (with Assumption 4.1)",
+      "statement": "|P(Y in C_St) - (1-alpha)| <= C * min(eps + lambda^{1/2} + n^{-1}, delta_S + lambda^{-1/2} + n^{-1}).",
+      "quantifier_structure": "exists C>0 such that for all lambda; C is unspecified",
+      "machine_checkable_contract": {
+        "must_hold": [
+          "empirical marginal coverage stays close to 1-alpha across the paper's full lambda grid on the paper's own settings",
+          "the measured coverage deviation is bounded by the theorem's envelope for SOME finite constant C fitted on held-out lambda values, i.e. the envelope shape (not merely its level) matches",
+          "the two-regime structure is visible: deviation is controlled by eps at small lambda and by delta_S at large lambda"
+        ],
+        "fails_if": "coverage deviation grows without bound in lambda, or no finite C reproduces the min(.,.) envelope on held-out lambda"
+      },
+      "non_circularity_note": "C must be fitted on a disjoint subset of the lambda grid from the one used to test the envelope, otherwise the check is a tautology.",
+      "negative_control": "Replace the transductive alignment with the uncorrected direct plug-in (DP), whose coverage the paper says can deviate severely; the envelope check must FAIL for DP."
+    },
+    {
+      "id": "C3",
+      "index": 2,
+      "prior_verdict": "toy",
+      "anchor": "Theorem 4.6 (with Lemma 4.4 and Assumption 4.5)",
+      "statement": "Standard conformal set-size variance is O(n^{-1}); StCP achieves O(m^{-1} + {n(1+lambda)^2}^{-1}), giving stability gains when m >> n.",
+      "quantifier_structure": "asymptotic O(.) with unspecified constants",
+      "machine_checkable_contract": {
+        "must_hold": [
+          "log-log regression of base set-size variance on n over n in {30,100,500} at m=500 has slope statistically consistent with -1",
+          "StCP variance decreases monotonically in lambda over the region where marginal coverage remains valid",
+          "at fixed n, StCP variance decreases as m increases over m in {30,100,500}, and the m-dependence flattens once m >> n",
+          "a two-term fit a/m + b/(n(1+lambda)^2) explains the measured StCP variance surface better than a pure 1/n law"
+        ],
+        "fails_if": "the base slope is inconsistent with -1, or StCP variance fails to decrease in lambda, or the m>>n regime shows no gain"
+      },
+      "non_circularity_note": "n and m grids are the paper's own {30,100,500}, not values chosen to make a fitted exponent land on -1; the exponent is estimated, never assumed.",
+      "negative_control": "The oracle baseline, which augments calibration with real labels, must show the 1/n law with a smaller constant but NOT the m-driven term."
+    },
+    {
+      "id": "C4",
+      "index": 3,
+      "prior_verdict": "inconclusive",
+      "anchor": "Table 1, Section 5.1, Appendix C.1 and C.3",
+      "statement": "On real data across five datasets, StCP/SLCP reduces prediction-set-size standard deviation by 20-48% when built on GLCP and by 6-29% when built on CQR, while maintaining marginal coverage near the nominal 90% level.",
+      "machine_checkable_contract": {
+        "datasets": ["CRIME", "BIO", "STAR", "DERMA", "TISSUE"],
+        "n_over_m": {"CRIME": "30/500", "BIO": "30/1000", "STAR": "30/1000", "DERMA": "30/1000", "TISSUE": "30/1000"},
+        "improvement_formula": "(a_ref - a_1) / (a_ref - a_0) * 100, a_ref = min Std over base/SDCP/PPI with in-range marginal coverage, a_0 = oracle Std",
+        "must_hold": [
+          "all five datasets run to completion at 50 repeats with the authors' splits",
+          "for each dataset and each base type, StCP 'ours' Std is strictly below the reference baseline Std",
+          "marginal coverage of 'ours' and 'ours-sel' stays within [1-alpha-0.01, 1-alpha+1/(n+1)] = [0.89, 0.93226]",
+          "the reproduced per-cell improvement percentages are compared against the published per-cell values, and the observed GLCP and CQR ranges are reported in full"
+        ],
+        "adjudication": "The claim's stated GLCP band 20-48% is checked against every reproduced cell, including TISSUE, whose published value is 13.5% and therefore already falls outside the stated band. The verdict must state whether the band holds as written, holds only for a subset, or is contradicted.",
+        "fails_if": "the pipeline cannot run the paper's datasets, or reproduced Std reductions contradict the published per-cell values beyond Monte-Carlo error"
+      },
+      "negative_control": "The direct plug-in (DP) variant must show the severe upward marginal-coverage deviation the paper reports, confirming the alignment step is what buys validity."
+    },
+    {
+      "id": "C5",
+      "index": 4,
+      "prior_verdict": "toy",
+      "anchor": "Table 2, Section 5.2, Appendix C.2",
+      "statement": "On synthetic data the largest stability gains occur at n=30, with standard deviation reductions of 31.2% (GLCP-based) and 16.3% (CQR-based).",
+      "machine_checkable_contract": {
+        "dgp": "LogAbs, d=5, mu_s=0, mu_t=1_d/(2 sqrt d), Y'=(3/d) sum X'_j + eps', Y=(2/d) sum X_j + eps, sigma(x;gamma)=sqrt(gamma) * sum_j log(1+|x_j|)/sqrt(d), gamma_s=1.2, gamma_t=1.0",
+        "grid": {"m": 500, "n": [30, 100, 500]},
+        "improvement_formula": "(base_std - value) / base_std * 100",
+        "must_hold": [
+          "reproduced GLCP reduction at n=30 matches the published 31.2% within Monte-Carlo error",
+          "reproduced CQR reduction at n=30 matches the published 16.3% within Monte-Carlo error",
+          "the ordering across n in {30,100,500} is reproduced and reported honestly"
+        ],
+        "adjudication": "The published CQR column is 16.3 / 16.7 / 6.3 for n = 30 / 100 / 500, so the 'largest gains at n=30' wording is exactly true for GLCP but off by 0.4 points for CQR. The verdict must state this rather than smooth it over.",
+        "fails_if": "reproduced n=30 reductions differ from 31.2% / 16.3% by more than Monte-Carlo error"
+      },
+      "negative_control": "A no-shift variant (gamma_s = gamma_t, mu_t = 0) should shrink the transfer gain, confirming the reduction is driven by the source information and not by the estimator's smoothing alone."
+    },
+    {
+      "id": "C6",
+      "index": 5,
+      "prior_verdict": "toy",
+      "anchor": "Theorem 4.7, Section 3.1",
+      "statement": "The data-driven lambda selection rule maintains empirical coverage within [1-alpha-alpha_tol, 1-alpha+alpha_tol+(n+1)^{-1}).",
+      "assumptions": "exchangeability of S_1..S_{n+1}; nothing else",
+      "predicted_band": {"alpha": 0.1, "alpha_tol": 0.02, "n": 30, "interval": "[0.88, 0.94226)"},
+      "quantifier_structure": "universally quantified over exchangeable score sequences",
+      "machine_checkable_contract": {
+        "must_hold": [
+          "ours-sel marginal coverage lies in the predicted band on every one of the five real datasets and every simulation setting, for both base types",
+          "the selected lambda_hat equals max of the feasible set on every repeat (rule implemented as stated)",
+          "the band is checked two-sided, and the observed coverage is reported with a Monte-Carlo interval"
+        ],
+        "fails_if": "coverage falls outside the band at any assumption-satisfying setting"
+      },
+      "vacuity_guard": "The band [0.88, 0.94226) is wide. The check is only non-vacuous if a control that BREAKS exchangeability is shown to land outside it. Negative control: calibrate on a distribution-shifted (non-exchangeable) calibration set and confirm the selected-lambda coverage exits the band.",
+      "negative_control": "Non-exchangeable calibration (target calibration scores drawn from the shifted source distribution) must push ours-sel coverage outside [0.88, 0.94226)."
+    }
+  ]
+}
