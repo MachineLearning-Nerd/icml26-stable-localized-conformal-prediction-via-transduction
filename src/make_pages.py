@@ -821,6 +821,76 @@ def _c2(a):
     ])
 
 
+def _c3_certificate(v):
+    """The second, required route for C3: Appendix B.5, as far as it certifies."""
+    c = v.get("certificate")
+    if not c:
+        return ""
+    rows = ["| Step of Appendix B.5 | witness identity exact | points searched | "
+            "min slack | mutations refuted | certified |",
+            "| --- | --- | --- | --- | --- | --- |"]
+    total_mut = 0
+    for s in c["steps"]:
+        muts = s.get("mutations", {})
+        total_mut += len(muts)
+        ident = s.get("witness_identity_is_exact")
+        rows.append(
+            f"| `{s['step']}` | {'yes' if ident else ('—' if ident is None else '**no**')} | "
+            f"{s['points_searched']:,} | {s['min_slack_found']:+.2e} | "
+            f"{sum(1 for m in muts.values() if m['refuted'])}/{len(muts)} | "
+            f"{'yes' if s['certified'] else '**NO**'} |")
+
+    g1 = next((s for s in c["steps"] if s["step"].startswith("G1")), {})
+    v2 = next((s for s in c["steps"] if s["step"].startswith("V2")), {})
+    relied = "\n".join(f"- {r}" for r in c.get("relied_on_not_verified", []))
+
+    return "\n".join([
+        "## The second required route — a proof certificate for Theorem 4.6",
+        "",
+        "Theorem 4.6 is universally quantified over distributions, n, m and λ, so the simulation",
+        "below is scoped corroboration and cannot carry the claim on its own. Per the registration",
+        "in [`repro/artifacts/c3_certificate_preregistration.md`](repro/artifacts/c3_certificate_preregistration.md),",
+        "this claim must pass **both** routes — the simulation checks at their existing thresholds",
+        "*and* the certificate. That registration was written while this claim's log–log slope was",
+        "still `null`, and it made C3 harder to pass, not easier.",
+        "",
+        "**What this certificate covers:** " + c["certifies"] + ".",
+        "",
+        "**What it does not cover:** " + c["does_not_certify"] + ".",
+        "",
+        "### The steps",
+        "",
+        "\n".join(rows), "",
+        f"All {total_mut} mutations are refuted by the same searches that certified the steps, so no",
+        "step passes for lack of a way to fail. `V2` is exhaustive over every `(n, k)` pair to",
+        f"n = 200 and over the row extremes and maximiser beyond it — {v2.get('points_searched', 0):,}",
+        f"cells — and its bound is approached to **{f(v2.get('closest_approach_to_the_bound'), 4)}** of",
+        "its value, so it is not a bound nothing reaches.",
+        "",
+        "### What the certificate relies on but does not verify",
+        "",
+        "Appendix B.5 is not elementary the way B.3 is. These are the ingredients the certificate",
+        "takes on trust. They are standard tools and the proof's use of them looks routine, but",
+        "\"looks routine\" is not a certificate, so they are named rather than absorbed into a PASS:",
+        "",
+        relied, "",
+        "### A finding: the bound predicts a gain only for λ > 0",
+        "",
+        "Step `G1` derives the claim's own comparison rather than restating it. The ratio of the",
+        "StCP bound to the standard `O(n⁻¹)` rate is exactly `n/m + (1+λ)⁻²`, from which:",
+        "",
+        f"- {g1.get('derived_condition', '')}",
+        f"- {g1.get('at_lambda_zero', '')}",
+        "",
+        "> This sharpens the paper's qualitative \"substantial stability gains when m greatly exceeds",
+        "> n\" into a threshold, and it shows the prose is incomplete: m alone never buys a gain. It is",
+        "> **not** counted as a falsification. Theorem 4.6's quantified statement is about the two",
+        "> rates, and the rates are what the certificate checks; the gap is in the sentence around the",
+        "> theorem, not in the theorem.",
+        "",
+    ])
+
+
 def _c3(a):
     v = a["verdicts"]["C3"]
     bv = v["base_variance_vs_n"]
@@ -838,6 +908,12 @@ def _c3(a):
         mrows.append(f"| {m} | {f(mt[m]['GLCP'])} | {f(mt[m]['CQR'])} |")
     ci = bv["slope_ci95"]
     return "\n".join([
+        _c3_certificate(v),
+        "## Reported evidence — the simulation route",
+        "",
+        "The measured half of the claim, on the paper's own DGP and settings. It is required, and",
+        "it is not sufficient on its own; see the certificate above for why.",
+        "",
         "## Rate 1 — standard conformal variance is O(n⁻¹)",
         "",
         "The exponent is **estimated**, never assumed: a log–log regression over the paper's own",
@@ -915,7 +991,7 @@ def _transcription_block(a):
 # matters for the row they are reading.
 _CLAIM_CHECKERS = {
     "C2": ["verify_thm42_certificate.py", "verify_shard_merge.py"],
-    "C3": ["verify_shard_merge.py"],
+    "C3": ["verify_thm46_certificate.py", "verify_shard_merge.py"],
     "C4": ["verify_transcription.py", "verify_fidelity_gate.py", "verify_shard_merge.py"],
     "C5": ["verify_transcription.py", "verify_shard_merge.py"],
 }
@@ -943,6 +1019,7 @@ def _control_of(v):
         "reproduces_published_table_cell_by_cell": "measured Std + coverage vs the printed table",
         "unlabeled_sample_is_not_decorative": "same-sample refit floor",
         "slope_interval_is_bootstrapped_not_assumed": "bootstrapped slope vs the assumed rate",
+        "certificate_no_step_is_vacuous": "mutated proof steps, each required to be refuted",
         # C4's verdict rides on the printed table, so its controls are the ones
         # that show that route can return the other answer: the CQR band is
         # evaluated by the same code and comes back clean, and moving the

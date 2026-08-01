@@ -588,6 +588,42 @@
    "job_id": "6a6e2be9a00abefd4b28bb9a",
    "flavor": "cpu-upgrade",
    "minutes_since_launch_at_detection": 26.1
+  },
+  "sim/logabs-n100-m500-w1": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e2c706b79c09949c1e7af",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 28.1
+  },
+  "sim/logabs-n100-m500-w3": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e2cf36b79c09949c1e7b9",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 25.9
+  },
+  "sim/logabs-n100-m500-w5": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e2d7aa00abefd4b28bbc5",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 23.7
+  },
+  "sim/logabs-n100-m500-w2": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e2c70a00abefd4b28bba5",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 30.4
+  },
+  "sim/logabs-n100-m500-w4": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e2d796b79c09949c1e7c1",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 26.0
+  },
+  "sim/logabs-n100-m500-w7": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e2efe6b79c09949c1e7d7",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 21.7
   }
  },
  "transcription_audit": {
@@ -1454,13 +1490,25 @@
    "checks": {
     "base_variance_slope_consistent_with_minus_one": false,
     "stcp_std_decreases_with_lambda_in_valid_region": true,
-    "stcp_std_decreases_with_m_at_fixed_n": false
+    "stcp_std_decreases_with_m_at_fixed_n": false,
+    "certificate_V1_lipschitz_variance_transfer": true,
+    "certificate_V2_beta_order_statistic_variance_is_order_n_inverse": true,
+    "certificate_V3_three_term_expansion": true,
+    "certificate_V4_variance_decomposition_at_equation_14": true,
+    "certificate_H1_hessian_lower_bound_positive_curvature": true,
+    "certificate_H2_hessian_lower_bound_nonpositive_curvature": true,
+    "certificate_R1_ratio_identity_for_the_score_gradient": true,
+    "certificate_A2_rate_assembly": true,
+    "certificate_G1_condition_for_a_predicted_stability_gain": true
    },
    "integrity": {
     "all_three_calibration_sizes_available": false,
     "slope_interval_is_bootstrapped_not_assumed": false,
     "slope_interval_excludes_no_decay": false,
-    "lambda_curves_have_enough_valid_points": true
+    "lambda_curves_have_enough_valid_points": true,
+    "certificate_every_registered_step_was_attempted": true,
+    "certificate_no_step_is_vacuous": true,
+    "certificate_probabilistic_ingredients_are_listed_not_hidden": true
    },
    "base_variance_vs_n": {
     "n": [
@@ -1474,6 +1522,272 @@
     "bootstrap": null,
     "ci_method": "resampling the 50 repeats at each n independently, refitting the slope"
    },
+   "certificate": {
+    "certifies": "part (a) of Claim 3 completely (standard conformal set-size variance is O(n^-1)), part (c) completely (the exact condition under which the bound predicts a stability gain), and the algebraic skeleton of part (b)",
+    "does_not_certify": "the probabilistic core of Appendix B.5 -- the o_p(1) Hessian consistency, the DKW and Hoeffding pointwise rates, dominated convergence, and the fixed-point argument -- nor Assumption 4.5",
+    "relied_on_not_verified": [
+     "||H_hat_lambda(theta_lambda) - H_lambda(theta_lambda)||_op = o_p(1), the pointwise Hessian consistency argued via dominated convergence",
+     "E|q_hat^0(u) - q^0(u)|^2 = O(n^-1) and E|q_hat^1(u) - q^1(u)|^2 = O(m^-1), via the DKW inequality and Lemma B.1",
+     "E|F_hat_S^1(q_lambda) - F_S^1(q_lambda)|^2 = O(m^-1), via Hoeffding on bounded summands",
+     "the standard fixed-point argument converting the linearised expansion into theta~ - theta_lambda = O_p(h^-1 (n^-1/2 + m^-1/2))",
+     "Assumption 4.5, which supplies the curvature constant c_d"
+    ],
+    "verdict": "VERIFIED",
+    "blocked_by": [],
+    "failed_steps": [],
+    "integrity": {
+     "every_registered_step_was_attempted": true,
+     "no_step_is_vacuous": true,
+     "probabilistic_ingredients_are_listed_not_hidden": true
+    },
+    "checks": {
+     "V1_lipschitz_variance_transfer": true,
+     "V2_beta_order_statistic_variance_is_order_n_inverse": true,
+     "V3_three_term_expansion": true,
+     "V4_variance_decomposition_at_equation_14": true,
+     "H1_hessian_lower_bound_positive_curvature": true,
+     "H2_hessian_lower_bound_nonpositive_curvature": true,
+     "R1_ratio_identity_for_the_score_gradient": true,
+     "A2_rate_assembly": true,
+     "G1_condition_for_a_predicted_stability_gain": true
+    },
+    "steps": [
+     {
+      "step": "V1_lipschitz_variance_transfer",
+      "as_printed": "Var(L(C_hat)) <= C_L^2 Var(q_hat) for L Lipschitz in the quantile",
+      "points_searched": 1500,
+      "min_slack_found": 0.022856063832937833,
+      "no_refutation_found": true,
+      "witness_identity_is_exact": null,
+      "mutations": {
+       "constant_not_squared": {
+        "refuted": true,
+        "min_slack": -76.14056048359535
+       },
+       "no_constant_at_all": {
+        "refuted": true,
+        "min_slack": -93.94421716139755
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     },
+     {
+      "step": "V2_beta_order_statistic_variance_is_order_n_inverse",
+      "as_printed": "U ~ Beta(k, n+1-k) gives Var(U) = k(n+1-k)/((n+1)^2 (n+2)) <= 1/(4n), hence Var(q_hat) = O(n^-1)",
+      "points_searched": 26400,
+      "exhaustive_domain": "every (n, k) with n in [1, 200]; n up to 2000 at the row extremes and the maximiser",
+      "min_slack_found": 1.249063124609531e-07,
+      "no_refutation_found": true,
+      "closest_approach_to_the_bound": 0.9990007495003124,
+      "witness_identity_is_exact": null,
+      "mutations": {
+       "rate_sharpened_to_n_to_the_minus_two": {
+        "refuted": true,
+        "min_slack": -0.02571428571428571
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     },
+     {
+      "step": "V3_three_term_expansion",
+      "as_printed": "(x + y + z)^2 <= 3(x^2 + y^2 + z^2)",
+      "witness_identity_is_exact": true,
+      "points_searched": 1331,
+      "min_slack_found": -3.552713678800501e-15,
+      "no_refutation_found": true,
+      "mutations": {
+       "coefficient_two_instead_of_three": {
+        "refuted": true,
+        "min_slack": -48.0,
+        "at": {
+         "x": -4.0,
+         "y": -4.0,
+         "z": -4.0
+        }
+       },
+       "no_coefficient_at_all": {
+        "refuted": true,
+        "min_slack": -96.0,
+        "at": {
+         "x": -4.0,
+         "y": -4.0,
+         "z": -4.0
+        }
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     },
+     {
+      "step": "V4_variance_decomposition_at_equation_14",
+      "as_printed": "2Var(q_St_hat) = E(a-a')^2 <= 3E(b-b')^2 + 6E(a-b)^2",
+      "points_searched": 4000,
+      "min_slack_found": 1.693582745376787e-06,
+      "no_refutation_found": true,
+      "witness_identity_is_exact": null,
+      "mutations": {
+       "both_coefficients_reduced_to_one": {
+        "refuted": true,
+        "min_slack": -99.21091408018127
+       },
+       "cross_term_dropped": {
+        "refuted": true,
+        "min_slack": -280.39663192918937
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     },
+     {
+      "step": "H1_hessian_lower_bound_positive_curvature",
+      "as_printed": "c_d > 0: c_d + 2*lambda >= min(c_d, 2) * (1 + lambda), so h_lambda = 1 + lambda",
+      "witness_identity_is_exact": true,
+      "points_searched": 196,
+      "min_slack_found": 8.062233582850631e-05,
+      "no_refutation_found": true,
+      "mutations": {
+       "c_H_taken_as_c_d": {
+        "refuted": true,
+        "min_slack": -980000.0,
+        "at": {
+         "cd": 100.0,
+         "lam": 10000.0
+        }
+       },
+       "c_H_taken_as_two": {
+        "refuted": true,
+        "min_slack": -1.9990000000000236,
+        "at": {
+         "cd": 0.001,
+         "lam": 142.51026703029993
+        }
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     },
+     {
+      "step": "H2_hessian_lower_bound_nonpositive_curvature",
+      "as_printed": "c_d <= 0 and lambda >= 1 - c_d: c_d + 2*lambda >= lambda + 1 >= lambda, so h_lambda = lambda and c_H = 1",
+      "witness_identity_is_exact": true,
+      "points_searched": 289,
+      "min_slack_found": 0.0,
+      "no_refutation_found": true,
+      "mutations": {
+       "hypothesis_lambda_at_least_one_minus_c_d_dropped": {
+        "refuted": true,
+        "min_slack": -9.0,
+        "at": {
+         "cd": -8.0,
+         "slack": 0.0
+        }
+       },
+       "c_H_taken_as_two": {
+        "refuted": true,
+        "min_slack": -10.0,
+        "at": {
+         "cd": -8.0,
+         "slack": 0.0
+        }
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     },
+     {
+      "step": "R1_ratio_identity_for_the_score_gradient",
+      "as_printed": "|A_m/B_m - A/B| <= L^-1 |A_m - A| + L^-2 |A| |B_m - B| when B_m, B >= L > 0",
+      "witness_identity_is_exact": true,
+      "points_searched": 14112,
+      "min_slack_found": -2.842170943040401e-14,
+      "no_refutation_found": true,
+      "mutations": {
+       "second_term_scaled_by_L_inverse_instead_of_L_squared": {
+        "refuted": true,
+        "min_slack": -75.06172839506178,
+        "at": {
+         "L": 0.01,
+         "A": -4.0,
+         "dA": -3.0,
+         "bB": 0.8,
+         "bBm": 0.0
+        }
+       },
+       "denominator_fluctuation_term_dropped": {
+        "refuted": true,
+        "min_slack": -399.00249376558605,
+        "at": {
+         "L": 0.01,
+         "A": -4.0,
+         "dA": -1.0,
+         "bB": 4.0,
+         "bBm": 0.0
+        }
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     },
+     {
+      "step": "A2_rate_assembly",
+      "as_printed": "(n^-1 + m^-1) h^-2 + m^-1 <= 2 (m^-1 + n^-1 h^-2) when h >= 1",
+      "slack_measured_relative_to_term_magnitude": true,
+      "witness_identity_is_exact": true,
+      "points_searched": 891,
+      "min_slack_found": 9.999000100011101e-05,
+      "no_refutation_found": true,
+      "mutations": {
+       "constant_one_instead_of_two": {
+        "refuted": true,
+        "min_slack": -0.9999000099989999,
+        "at": {
+         "n": 10000.0,
+         "m": 1.0,
+         "hx": 0.0
+        }
+       },
+       "hypothesis_h_at_least_one_dropped": {
+        "refuted": true,
+        "min_slack": -9997.000299970003,
+        "at": {
+         "n": 10000.0,
+         "m": 1.0,
+         "hx": 0.0
+        }
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     },
+     {
+      "step": "G1_condition_for_a_predicted_stability_gain",
+      "as_printed": "'substantial stability gains when m greatly exceeds n' -- the bound's own ratio to the standard rate is n/m + (1+lambda)^-2",
+      "points_searched": 280,
+      "min_slack_found": 9.999857891452849e-10,
+      "no_refutation_found": true,
+      "threshold_mismatches": 0,
+      "witness_identity_is_exact": null,
+      "derived_condition": "the bound predicts a gain exactly when m > n / (1 - (1+lambda)^-2), which requires lambda > 0; as m/n -> infinity the ratio tends to (1+lambda)^-2, so the asymptotic gain is set by lambda alone and not by m",
+      "at_lambda_zero": "the ratio is n/m + 1 > 1 for every finite m, so at lambda = 0 the bound predicts no stability gain at any m -- the qualitative reading 'gains when m >> n' holds only for lambda > 0",
+      "mutations": {
+       "gain_claimed_for_every_m_greater_than_n": {
+        "refuted": true,
+        "min_slack": -0.5
+       },
+       "gain_claimed_independent_of_lambda": {
+        "refuted": true,
+        "min_slack": -9.999999983634211e-08
+       }
+      },
+      "every_mutation_is_refuted": true,
+      "certified": true
+     }
+    ],
+    "seed": 0
+   },
+   "route_note": "Two routes, both required. Theorem 4.6 is universally quantified over distributions, n, m and lambda, so the simulation below is scoped corroboration and cannot carry the claim alone; the certificate covers parts (a) and (c) of the claim completely and part (b)'s algebraic skeleton only. What the certificate does not reach is listed by name rather than left to be assumed.",
    "slope_informativeness": {
     "ci95": null,
     "excludes_no_decay": false,
