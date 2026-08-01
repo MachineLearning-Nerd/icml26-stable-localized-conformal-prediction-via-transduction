@@ -111,8 +111,14 @@ def _dgp_constants(upstream_root):
         k = config.common_run_kwargs()
     finally:
         sys.path.remove(simu)
-    return {key: k[key] for key in ("d", "r", "N", "gamma_t", "gamma_s", "alpha",
-                                    "repeats", "testN", "epoches") if key in k}
+    out = {key: k[key] for key in ("d", "r", "N", "gamma_t", "gamma_s", "alpha",
+                                   "repeats", "testN", "epoches") if key in k}
+    # Claim 2 fits its envelope against the lambda grid. Taking the grid from the
+    # artifact rather than from the analysis node's config means a node that
+    # forgets to declare it cannot silently produce an empty envelope set -- which
+    # would read as "the envelope check failed" rather than "it never ran".
+    out["lbds"] = list(k["lbds"])
+    return out
 
 
 def _sim_table(parts, n, alpha=0.1, sim_sum_tab=None):
@@ -1348,7 +1354,9 @@ def _load_real(real_dir, upstream_root):
 def run(cfg, upstream_root):
     root = _root()
     sim_sum_tab = _load_sim_sum_tab(upstream_root)
-    res = {"sim": {}, "real": {}, "_sim_parts": {}, "_lambda_grid": cfg.get("lambda_grid") or []}
+    dgp = _dgp_constants(upstream_root)
+    res = {"sim": {}, "real": {}, "_sim_parts": {},
+           "_lambda_grid": cfg.get("lambda_grid") or dgp["lbds"]}
 
     shard_root = os.path.join(root, "results", "shards")
     for d in sorted(glob.glob(os.path.join(shard_root, "*"))):
@@ -1391,7 +1399,7 @@ def run(cfg, upstream_root):
         "kind": "analysis",
         "settings_merged": sorted(res["sim"]),
         "datasets": sorted(res["real"]),
-        "dgp": _dgp_constants(upstream_root),
+        "dgp": dgp,
         "real_provenance": res["_real_shards"],
         "compute_provenance": _load_json_opt(
             os.path.join(root, "results", "compute_provenance.json")),

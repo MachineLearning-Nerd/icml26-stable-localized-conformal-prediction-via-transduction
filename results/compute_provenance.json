@@ -165,5 +165,11 @@
   "seconds": 1359.9,
   "cores": 2,
   "host": "darwin-arm64"
+ },
+ "real/derma-w6": {
+  "where": "local",
+  "seconds": 1442.2,
+  "cores": 2,
+  "host": "darwin-arm64"
  }
 }
