@@ -32,12 +32,33 @@ def _load_json(path):
 # ---------------------------------------------------------------- simulation
 
 
+def _assert_tiles(spans, where):
+    """Repeat ranges must tile without overlap, or statistics are double-counted.
+
+    Shard files of different widths can coexist in one directory -- a 10-repeat
+    shard banked before the width changed, plus 5-repeat shards for the rest --
+    and nothing in the filenames prevents two of them covering the same repeat.
+    """
+    seen = set()
+    for lo, hi in spans:
+        dup = seen & set(range(lo, hi))
+        if dup:
+            raise ValueError(f"{where}: shards overlap on repeats {sorted(dup)[:5]}... {spans}")
+        seen |= set(range(lo, hi))
+    if seen and seen != set(range(min(seen), max(seen) + 1)):
+        raise ValueError(f"{where}: gap in repeat coverage: {sorted(spans)}")
+    return len(seen)
+
+
 def _merge_setting(setting_dir):
-    parts = {}
+    parts, spans = {}, []
     for path in sorted(glob.glob(os.path.join(setting_dir, "*.json"))):
+        lo, hi = (int(x) for x in os.path.basename(path)[:-5].split("_"))
+        spans.append((lo, hi))
         for key, val in _load_json(path).items():
             if key != "selected_idx":
                 parts.setdefault(key, []).append(val)
+    _assert_tiles(spans, os.path.basename(setting_dir))
     return parts
 
 

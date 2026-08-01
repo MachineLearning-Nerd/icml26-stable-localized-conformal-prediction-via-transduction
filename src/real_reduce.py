@@ -11,8 +11,9 @@ handing it to their own `sum_compare_result`.
 
 Exactness, per column of `[mar, mar_std, size, size_std, local_cov]`:
 
-  mar, size   exact -- plain means over an equal number of repeats per shard, so
-              the mean of shard means is the mean over all 50.
+  mar, size   exact -- plain means over repeats, recombined as a weighted average
+              with each shard weighted by its repeat count, so mixed shard widths
+              recombine to the mean over all 50.
   size_std    exact -- recomputed from the pooled per-repeat means, which is the
               definition (`np.std(np.mean(size, axis=1))`).
   mar_std     exact -- same, from pooled per-repeat coverage means.
@@ -40,9 +41,21 @@ def merge(shards):
     for a, b in zip(spans, spans[1:]):
         if a[1] != b[0]:
             raise ValueError(f"shards are not contiguous: {spans}")
-    widths = {b - a for a, b in spans}
-    if len(widths) != 1:
-        raise ValueError(f"shards must be equal width to average unweighted: {spans}")
+    # Shard widths may differ -- a dataset can be assembled from whatever mix of
+    # widths actually completed -- so every mean is weighted by the number of
+    # repeats it summarises. Averaging unweighted would silently over-weight the
+    # smaller shards.
+    seen = set()
+    for a, b in spans:
+        overlap = seen & set(range(a, b))
+        if overlap:
+            raise ValueError(f"shards overlap on repeats {sorted(overlap)}: {spans}")
+        seen |= set(range(a, b))
+    if spans and seen != set(range(spans[0][0], spans[-1][1])):
+        raise ValueError(f"shards do not tile their range without gaps: {spans}")
+
+    weights = np.array([b - a for a, b in spans], dtype=float)
+    weights /= weights.sum()
 
     aggs = [s["aggregates"] for s in shards]
     keys = set(aggs[0])
@@ -52,9 +65,12 @@ def merge(shards):
 
     merged = {}
     for key in sorted(keys):
-        mar = np.mean([np.asarray(a[key][0], dtype=float) for a in aggs], axis=0)
-        size = np.mean([np.asarray(a[key][2], dtype=float) for a in aggs], axis=0)
-        loc = np.mean([np.asarray(a[key][4], dtype=float) for a in aggs], axis=0)
+        def wavg(slot):
+            stack = np.stack([np.asarray(a[key][slot], dtype=float) for a in aggs], axis=0)
+            w = weights.reshape((-1,) + (1,) * (stack.ndim - 1))
+            return np.sum(stack * w, axis=0)
+
+        mar, size, loc = wavg(0), wavg(2), wavg(4)
         merged[key] = [mar, None, size, None, loc]
 
     # size_std / mar_std come from the pooled per-repeat means, never from the
