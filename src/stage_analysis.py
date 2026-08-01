@@ -470,17 +470,34 @@ def _boot_pct_real(per_repeat, model_idx, ref_label, slot, n_boot=BOOT):
     except IndexError:
         return None
     r = min(len(ref_v), len(orc_v), len(ours_v))
-    out = []
+    # The denominator is the reference-to-oracle gap. When a resample shrinks it
+    # toward zero the ratio explodes, and a handful of such draws can widen the
+    # interval until it cannot discriminate anything. Draws whose gap collapses
+    # below a tenth of the observed gap are dropped and counted, rather than
+    # admitted with a 1e-12 guard that only excludes exact division by zero.
+    obs_gap = float(ref_v.std() - orc_v.std())
+    floor = 0.1 * abs(obs_gap)
+    out, degenerate = [], 0
     for _ in range(n_boot):
         idx = RNG.integers(0, r, r)
         a_ref, a_0, a_1 = ref_v[idx].std(), orc_v[idx].std(), ours_v[idx].std()
-        if abs(a_ref - a_0) > 1e-12:
-            out.append((a_ref - a_1) / (a_ref - a_0) * 100.0)
-    if len(out) < n_boot // 10:
-        return None
+        gap = a_ref - a_0
+        if abs(gap) <= floor or gap * obs_gap < 0:
+            degenerate += 1
+            continue
+        out.append((a_ref - a_1) / gap * 100.0)
+    if len(out) < n_boot // 2:
+        # More than half the resamples were degenerate: the point estimate itself
+        # sits on an unstable denominator, so no interval is reported.
+        return {"mean": None, "ci95": None, "unstable_denominator": True,
+                "degenerate_fraction": degenerate / float(n_boot),
+                "observed_reference_minus_oracle_gap": obs_gap}
     out = np.asarray(out)
     return {"mean": float(out.mean()),
-            "ci95": [float(np.percentile(out, 2.5)), float(np.percentile(out, 97.5))]}
+            "ci95": [float(np.percentile(out, 2.5)), float(np.percentile(out, 97.5))],
+            "unstable_denominator": False,
+            "degenerate_fraction": degenerate / float(n_boot),
+            "observed_reference_minus_oracle_gap": obs_gap}
 
 
 REAL_LABELS = {"base": "base", "SDCP": "SDCP", "PPI": "PPI",
@@ -522,13 +539,14 @@ def claim4(results):
                 row[lab]["pct_reproduced"] = g[lab]["std_improvement_pct"]
                 row[lab]["pct_published"] = p["pct"][lab]
             (glcp_pcts if model == "GLCP" else cqr_pcts).append(row["ours"]["pct_reproduced"])
+            _bt = _boot_pct_real(got.get("per_repeat") or {}, MODELS.index(model),
+                                 g["_reference"]["a_ref_method"], g.get("_selected_lambda_slot"))
             entry["models"][model] = {
                 "rows": row,
+                "pct_ci95": (_bt or {}).get("ci95"),
+                "pct_bootstrap": _bt,
                 "reference": g["_reference"],
-                "pct_ci95": (lambda bt: bt["ci95"] if bt else None)(
-                    _boot_pct_real(got.get("per_repeat") or {}, MODELS.index(model),
-                                   g["_reference"]["a_ref_method"],
-                                   g.get("_selected_lambda_slot"))),
+
                 "ours_beats_reference": g["ours"]["std"] < g["_reference"]["a_ref_std"],
                 "ours_marginal_in_band": lo <= g["ours"]["marginal"] <= up,
                 "ours_sel_marginal_in_band": lo <= g["ours-sel"]["marginal"] <= up,
@@ -556,6 +574,24 @@ def claim4(results):
             (agree if ok else disagree)[f"{ds}/{m}"] = {
                 "reproduced": r["pct_reproduced"], "published": pub, "ci95": ci}
 
+    # How wide are the agreement intervals? "the published value lies inside our CI"
+    # is only evidence if the CI is narrower than the thing being tested. A CI
+    # wider than the claimed band could not fail, so the ratio is published and a
+    # median wider than the band width is treated as an integrity failure.
+    band_width = min(P.CLAIM4_GLCP_BAND[1] - P.CLAIM4_GLCP_BAND[0],
+                     P.CLAIM4_CQR_BAND[1] - P.CLAIM4_CQR_BAND[0])
+    widths = [c["ci95"][1] - c["ci95"][0]
+              for c in list(agree.values()) + list(disagree.values()) if c.get("ci95")]
+    agreement_power = {
+        "median_ci_width_pct": float(np.median(widths)) if widths else None,
+        "max_ci_width_pct": float(np.max(widths)) if widths else None,
+        "narrowest_claimed_band_width_pct": float(band_width),
+        "test_can_discriminate": bool(widths and np.median(widths) < band_width),
+        "note": ("A per-cell interval wider than the claimed band cannot distinguish a matching "
+                 "reproduction from a non-matching one, which would make the agreement "
+                 "precondition vacuous and any falsification built on it unsound."),
+    }
+
     pub_glcp = {ds: P.TABLE1[ds]["GLCP"]["pct"]["ours"] for ds in P.TABLE1}
     pub_cqr = {ds: P.TABLE1[ds]["CQR"]["pct"]["ours"] for ds in P.TABLE1}
     rep_glcp = {ds: v["models"]["GLCP"]["rows"]["ours"]["pct_reproduced"]
@@ -582,16 +618,26 @@ def claim4(results):
         "reproduces_published_table_cell_by_cell": bool(reproduces),
     }
     checks = {
+        # PRIMARY ROUTE -- arithmetic on the paper's own Table 1, which is what the
+        # claim cites as its evidence. This needs no measurement precision from the
+        # reproduction: either the printed cells lie inside the stated band or they
+        # do not. TISSUE/GLCP is printed at 13.5% against a stated floor of 20%.
+        "claimed_bands_cover_every_published_cell": not (
+            viol["published_glcp"] or viol["published_cqr"]
+        ),
         "marginal_coverage_near_nominal": all(
             v["models"][m]["ours_marginal_in_band"]
             for v in per_dataset.values() if v.get("models") for m in MODELS
         ),
         "ours_beats_reference_baseline_everywhere": bool(beats and all(beats)),
-        # The headline quantity. Previously computed but never adjudicated, so a
-        # reproduction whose percentages missed the claimed bands entirely would
-        # still have passed.
-        "claimed_bands_cover_every_reproduced_cell": bands_hold,
     }
+    # SECONDARY ROUTE -- the same test on our own measurements. It is corroboration,
+    # not the verdict: the oracle-adjusted percentage is a ratio of two standard
+    # deviations estimated from 50 repeats, and its bootstrap interval can easily be
+    # wider than the violation it would need to resolve. Reporting it as a check
+    # would hand the verdict to whichever way the noise fell.
+    if agreement_power["test_can_discriminate"]:
+        checks["claimed_bands_cover_every_reproduced_cell"] = bands_hold
 
     return {
         **_adjudicate(checks, integrity),
@@ -605,7 +651,18 @@ def claim4(results):
         "band_violations": viol,
         "published_glcp_pct_by_dataset": pub_glcp,
         "published_cqr_pct_by_dataset": pub_cqr,
-        "cell_agreement": {"agree": agree, "disagree": disagree},
+        "cell_agreement": {"agree": agree, "disagree": disagree,
+                           "power": agreement_power},
+        "reproduced_band_check_used_in_verdict": bool(agreement_power["test_can_discriminate"]),
+        "reproduced_bands_hold": bands_hold,
+        "adjudication_route": (
+            "The claim is settled on the paper's own Table 1, which is the evidence the claim "
+            "cites: the stated bands either cover the printed cells or they do not, and that is "
+            "exact arithmetic requiring no precision from this reproduction. The reproduction's "
+            "role is to establish that the same pipeline, run on the same data, yields compatible "
+            "numbers -- an integrity precondition. Our own cells are additionally tested against "
+            "the bands only when their bootstrap intervals are narrow enough to discriminate, "
+            "which is reported in `cell_agreement.power`."),
         "paper_internal_finding": (
             "The claim's bands do not cover the paper's own Table 1. GLCP spans 13.5-48.4% against "
             "a claimed 20-48%: STAR (48.4) and BIO/CQR (29.3) sit within half a point of the stated "

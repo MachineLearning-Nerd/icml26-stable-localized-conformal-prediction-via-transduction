@@ -37,12 +37,20 @@ METH=['','SDCP','PPI','SLCP','SLCP-sel','ORCP','NOAL']
 LBL={'':'base','SDCP':'SDCP','PPI':'PPI','SLCP':'SLCP','SLCP-sel':'SLCP-sel','ORCP':'ORCP','NOAL':'NOAL'}
 os.makedirs(os.path.join(ROOT,"real"),exist_ok=True)
 for ds,cls in [("CRIME",False),("BIO",False),("STAR",False),("DERMA",True),("TISSUE",True)]:
+    # Table 1's "Std" is the spread of per-repeat MEAN set size, so the fixture has
+    # to give each method its own across-repeat dispersion. Drawing them all with
+    # the same noise makes a_ref - a_oracle collapse to zero and the oracle-adjusted
+    # percentage explode -- an artefact of the fixture, not of the pipeline. These
+    # values track the real CRIME/GLCP column (base 0.75, oracle 0.16).
+    ACROSS = {'':0.75,'SDCP':1.42,'PPI':0.78,'SLCP':0.50,'SLCP-sel':0.58,'ORCP':0.16,'NOAL':0.86}
+    CENTER = {'':2.6,'SDCP':3.1,'PPI':2.7,'SLCP':2.2,'SLCP-sel':2.3,'ORCP':2.0,'NOAL':2.8}
     covs={};sizes={}
     for mi,model in enumerate(['GLCP','SCC']):
         for m in METH:
             k=NL if m=='SLCP' else 1
-            covs[(model,m)]=0.905+0.008*R.standard_normal((k,50,120))
-            sizes[(model,m)]=(1.7 if m in ('SLCP','SLCP-sel','ORCP') else 2.0)+0.25*R.standard_normal((k,50,120))
+            covs[(model,m)]=0.905+0.008*R.standard_normal((k,50,1))+0.002*R.standard_normal((k,50,120))
+            per_rep=CENTER[m]+ACROSS[m]*R.standard_normal((k,50,1))
+            sizes[(model,m)]=per_rep+0.05*R.standard_normal((k,50,120))
     for si,(lo,hi) in enumerate([(0,10),(10,20),(20,30),(30,40),(40,50)]):
         agg={};pr={}
         for model in ['GLCP','SCC']:
