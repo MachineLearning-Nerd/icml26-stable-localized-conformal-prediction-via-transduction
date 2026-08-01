@@ -1,6 +1,6 @@
 {
   "stage": "real",
-  "note": "Table 1 CRIME column at the authors' committed defaults. Repeats [40,45); 5-repeat shard to fit the 1h job cap.",
+  "note": "Table 1 CRIME column at the authors' committed defaults. Repeats [45,50); 5-repeat shard to fit the 1h job cap.",
   "dataset": "CRIME",
   "script": "Crime.py",
   "argv": [],
@@ -9,7 +9,7 @@
   "n_reported": 30,
   "n_over_m": "30/500",
   "shard": [
-    40,
-    45
+    45,
+    50
   ]
 }
