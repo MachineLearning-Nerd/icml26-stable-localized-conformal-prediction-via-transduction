@@ -223,6 +223,60 @@ METHOD_SLUG = "method-and-environment"
 LIMITS_SLUG = "limitations-and-deviations"
 
 
+def _unsettled_block(analysis):
+    """Checks that were run, did not come out, and are not scored.
+
+    Built from the verdicts rather than written by hand: a check that stops
+    failing should stop being listed here, and one that starts failing should
+    appear without anyone remembering to add it.
+    """
+    lines = ["## Checks that were run and did not settle", "",
+             "Recorded because they were designed as evidence and did not deliver it. None of",
+             "them is scored in either direction.", ""]
+    found = False
+
+    c1 = analysis["verdicts"].get("C1", {}).get("reported_not_adjudicated", {})
+    rep = c1.get("source_vs_target_unlabeled_distribution")
+    if rep and not rep.get("detected"):
+        b = rep["paired_bootstrap"]
+        lo, hi = b["ci95"]
+        found = True
+        lines += [
+            "**Claim 1 — is the fit sensitive to the unlabeled sample's *distribution*?** "
+            f"Substituting a source-drawn unlabeled sample moves the solution "
+            f"{f(rep['mean_distance_source_swap'], 4)} against "
+            f"{f(rep['mean_distance_target_redraw'], 4)} for a second target draw; the paired 95% CI "
+            f"is [{f(lo, 4)}, {f(hi, 4)}], which contains zero. This was the original integrity gate "
+            "for Claim 1. It was moved to a reported result because Equation 7 asserts that the "
+            "marginal is estimated *from* unlabeled target data, not that source data would give a "
+            "different answer. The gate that replaced it — the unlabeled sample is not decorative, "
+            "against a zero refit floor — is exact rather than statistical.",
+            "",
+        ]
+
+    ctrl = analysis["verdicts"].get("C6", {}).get("negative_control") or {}
+    if ctrl.get("paper_shift_leaves_band") is False:
+        found = True
+        arms = {a["arm"]: a for a in ctrl.get("arms", [])}
+        ne = arms.get("non_exchangeable", {})
+        left = ctrl.get("violations_that_left_the_band", [])
+        lines += [
+            "**Claim 6 — does the paper's own source/target shift break the Theorem 4.7 band?** "
+            f"No. Calibration drawn from the source distribution gives coverage "
+            f"{f(ne.get('coverage_mean'))}, inside a band of "
+            f"[{f(ctrl['band']['lo'] if isinstance(ctrl.get('band'), dict) else ctrl['band'][0])}, "
+            f"{f(ctrl['band']['hi'] if isinstance(ctrl.get('band'), dict) else ctrl['band'][1])}). "
+            + (f"A larger violation ({', '.join(left)}) does leave it, so the band has resolution "
+               "and an in-band observation is a real result."
+               if left else
+               "No violation tried leaves it, so at these parameters an in-band observation is "
+               "weak evidence and the claim is reported BLOCKED rather than corroborated."),
+            "",
+        ]
+
+    return "\n".join(lines) if found else ""
+
+
 def build_supporting_pages(out_dir, analysis, env):
     pages = os.path.join(out_dir, "pages")
     written = []
@@ -339,6 +393,8 @@ def build_supporting_pages(out_dir, analysis, env):
         "- Theorem 4.2's constant `C` is unspecified in the paper, so the bound cannot be falsified at",
         "  a single λ. What is tested is its operative consequence: coverage validity across the",
         "  authors' full λ grid, with a control that fails.",
+        "",
+        _unsettled_block(analysis),
     ])
 
     for slug, text in [(SUMMARY_SLUG, summary), (MATRIX_SLUG, "\n".join(matrix)),

@@ -57,5 +57,29 @@
   "seconds": 2684.2,
   "cores": 2,
   "host": "darwin-arm64"
+ },
+ "real/bio-w3": {
+  "where": "local",
+  "seconds": 2822.5,
+  "cores": 2,
+  "host": "darwin-arm64"
+ },
+ "real/bio-w4": {
+  "where": "local",
+  "seconds": 3091.6,
+  "cores": 2,
+  "host": "darwin-arm64"
+ },
+ "real/bio-w5": {
+  "where": "local",
+  "seconds": 1833.7,
+  "cores": 2,
+  "host": "darwin-arm64"
+ },
+ "real/bio-w8": {
+  "where": "local",
+  "seconds": 2379.1,
+  "cores": 2,
+  "host": "darwin-arm64"
  }
 }
