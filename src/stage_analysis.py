@@ -59,7 +59,12 @@ def _assert_tiles(spans, where, expect=None):
             raise ValueError(f"{where}: shards overlap on repeats {sorted(dup)[:5]}... {spans}")
         seen |= set(range(lo, hi))
     if seen and seen != set(range(min(seen), max(seen) + 1)):
-        raise ValueError(f"{where}: gap in repeat coverage: {sorted(spans)}")
+        # A hole is incompleteness, not corruption: while a setting is still
+        # draining, shard [20,25) can easily land after [25,30). It is reported
+        # like truncation and the setting is skipped -- and since completeness
+        # demands exactly `expect` repeats running contiguously from zero, a hole
+        # can never survive to be mistaken for a finished setting.
+        raise Truncated(f"{where}: gap in repeat coverage: {sorted(spans)}")
     if seen and expect is not None and len(seen) != expect:
         # Contiguity is not completeness. A dataset whose last shards have not
         # landed yet tiles [0, k) perfectly and passes every check above, then
