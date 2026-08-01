@@ -20,13 +20,13 @@
      "the transductive term is computed from the m UNLABELED target covariates only",
      "the optimised objective is exactly discrepancy + lambda * ||theta - theta_hat||^2 (Main/Tuner.py:202), verified arithmetically for every lambda and repeat",
      "on the UNENFORCED path (direct tune_marginal calls, no check_order repair) ||theta - theta_hat||^2 shrinks from the smallest to the largest lambda in every repeat",
-     "refitting against covariates drawn from the SOURCE instead of the unlabeled TARGET sample moves the solution in every repeat"
+     "refitting against SOURCE-drawn covariates shifts the discrepancy MORE than refitting against a second independent draw of the unlabeled TARGET sample, in a majority of repeats"
     ],
     "fails_if": "target labels reach the CDF estimator, the objective is not discrepancy + lambda*regulariser, the unenforced path does not shrink toward theta_hat, or the unlabeled target sample can be swapped for a source sample without changing the solution"
    },
    "evidence_plan": "Instrument the authors' own implementation on all five Table 1 datasets plus the LogAbs simulation; assert the data-flow invariants above by construction-tracing, and measure the lambda=0 identity and the lambda->infinity limit numerically.",
    "non_circularity_note": "Main/SLCP.py:8 `check_order` re-trains any lambda whose (discrepancy, delta) pair breaks the Pareto ordering, looping up to 3*|Lambda| times. Monotonicity read off `tune_lbd_list` output is therefore imposed by the implementation and is NOT admissible evidence. Claim 1 is adjudicated only on the path measured by calling `tune_marginal` directly per lambda on independent copies.",
-   "negative_control": "Refit the transductive term against covariates drawn from the SOURCE distribution. The fitted solution must move; if it does not, the transduction is inert and the check is not discriminating.",
+   "negative_control": "Matched null: refit at the median lambda against a second independent draw of the unlabeled TARGET sample. This changes the input without changing its distribution, so it calibrates how much movement is resampling noise. The source-covariate treatment must exceed it. An earlier revision used a bare 1e-3 relative threshold on ||theta-theta_hat||^2 with no null, which is both arbitrary and measured on a scalar norm that two different solutions can share -- in one repeat the norm moved 0.03% while the discrepancy moved 4.4%.",
    "withdrawn_check": "An earlier revision compared SLCP.q against the conformal score quantile of F_hat_S^0 and measured a gap of ~29 median score spacings. That comparison was invalid: SLCP.q is a PROBABILITY level, passed as the `q` argument of Generator.quantile (Main/SLCP.py:90), not a score threshold. The check is withdrawn rather than reinterpreted, and no verdict was ever derived from it."
   },
   {
