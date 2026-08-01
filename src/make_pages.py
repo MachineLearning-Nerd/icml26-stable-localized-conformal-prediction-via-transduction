@@ -757,6 +757,19 @@ def _transcription_block(a):
     return "\n".join(lines)
 
 
+def _dgp_line(a):
+    """The simulation constants as a table, rendered from the analysis output."""
+    d = a.get("dgp") or {}
+    if not d:
+        return "_DGP constants not recorded by this analysis run._"
+    order = [("d", "d"), ("r", "r (target mean shift)"), ("gamma_t", "γ_t"),
+             ("gamma_s", "γ_s"), ("N", "N (source)"), ("testN", "test points"),
+             ("repeats", "repeats"), ("alpha", "α"), ("epoches", "epochs")]
+    rows = ["| Constant | Value |", "| --- | --- |"]
+    rows += [f"| {label} | {d[key]} |" for key, label in order if key in d]
+    return "\n".join(rows)
+
+
 def _c4_fidelity(v):
     """Does the reproduction match the printed table, and could that have failed?
 
@@ -983,8 +996,11 @@ def _c5(a):
     return "\n".join([
         "## Table 2 reproduced on the paper's exact LogAbs DGP",
         "",
-        "d = 5, μ_s = 0, μ_t = 1_d/(2√d), Y′ = (3/d)ΣX′ⱼ + ε′, Y = (2/d)ΣXⱼ + ε,",
-        "σ(x;γ) = √γ · Σⱼ log(1+|xⱼ|)/√d, γ_s = 1.2, γ_t = 1.0, m = 500, 50 repeats.",
+        "μ_s = 0, μ_t = 1_d·r/√d, Y′ = (3/d)ΣX′ⱼ + ε′, Y = (2/d)ΣXⱼ + ε,",
+        "σ(x;γ) = √γ · Σⱼ log(1+|xⱼ|)/√d. Constants below are read from the pinned artifact's",
+        "own `SimuAnalysis/config.py`, not transcribed:",
+        "",
+        _dgp_line(a),
         "Percentages use Table 2's own formula `(base_std − value)/base_std × 100`.",
         "", "\n".join(rows), "",
         "## Monte-Carlo uncertainty on the headline numbers",
@@ -1037,9 +1053,9 @@ def _c6(a):
         "", "\n".join(obs), "",
         "## Why this check is not vacuous",
         "",
-        "The band is 7.2 points wide, so landing inside it proves little on its own. Each arm below",
-        "changes exactly one thing — the distribution the calibration scores are drawn from — and",
-        "leaves estimator, λ grid, selection rule and seeds identical.",
+        f"The band is {(hi - lo) * 100:.1f} points wide, so landing inside it proves little on its",
+        "own. Each arm below changes exactly one thing — the distribution the calibration scores",
+        "are drawn from — and leaves estimator, λ grid, selection rule and seeds identical.",
         "", "\n".join(crows) if crows else "_control pending_", "",
         _c6_ladder(ctrl),
     ])

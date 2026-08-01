@@ -97,6 +97,24 @@ def _load_sim_sum_tab(upstream_root):
     return mod
 
 
+def _dgp_constants(upstream_root):
+    """The simulation constants, read from the pinned artifact's own config.
+
+    The claim pages describe the DGP in prose. Typing those numbers in would let
+    the description drift away from what actually ran without anything noticing,
+    so they are rendered from `SimuAnalysis/config.py` at the pinned SHA instead.
+    """
+    simu = os.path.join(upstream_root, "SimuAnalysis")
+    sys.path.insert(0, simu)
+    try:
+        import config
+        k = config.common_run_kwargs()
+    finally:
+        sys.path.remove(simu)
+    return {key: k[key] for key in ("d", "r", "N", "gamma_t", "gamma_s", "alpha",
+                                    "repeats", "testN", "epoches") if key in k}
+
+
 def _sim_table(parts, n, alpha=0.1, sim_sum_tab=None):
     """Rebuild the authors' aggregate arrays, then pick the `ours` row as they do."""
     res = {}
@@ -1364,6 +1382,7 @@ def run(cfg, upstream_root):
         "kind": "analysis",
         "settings_merged": sorted(res["sim"]),
         "datasets": sorted(res["real"]),
+        "dgp": _dgp_constants(upstream_root),
         "real_provenance": res["_real_shards"],
         "compute_provenance": _load_json_opt(
             os.path.join(root, "results", "compute_provenance.json")),
