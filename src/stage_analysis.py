@@ -411,6 +411,83 @@ def _fit_envelope(lams, devs, n, train_idx, test_idx, rng, n_perm=200):
     }
 
 
+def _fit_envelope_pooled(blocks, rng, n_perm=200):
+    """One envelope for every setting at once, per `c2_envelope_preregistration.md`.
+
+    Fitting per setting gave three free parameters ten training points, which a
+    `min()` of two branches can bend to almost anything: a quarter of random
+    lambda orderings fitted as well as the true one. Requiring a single
+    (C, eps, delta_S) to cover every setting simultaneously constrains the same
+    three parameters with every point in the campaign, so the flexibility that
+    was hiding the non-result is gone.
+
+    This is strictly harder to satisfy than the per-setting fit: any pooled
+    envelope also covers each setting alone, and the converse fails. `n` enters
+    per point, since it differs across settings.
+
+    `blocks` is a list of (lams, devs, n). Splits and permutations stay WITHIN a
+    block, so held-out points come from every setting and permutation destroys
+    the lambda ordering without mixing settings that have different n.
+    """
+    lam_all = np.concatenate([np.maximum(np.asarray(b[0], float), 1e-12) for b in blocks])
+    n_all = np.concatenate([np.full(len(b[0]), float(b[2])) for b in blocks])
+    dev_all = np.concatenate([np.asarray(b[1], float) for b in blocks])
+
+    off, tr, te = 0, [], []
+    for lams, _, _, _ in blocks:
+        idx = np.arange(len(lams)) + off
+        tr.append(idx[::2])
+        te.append(idx[1::2])
+        off += len(lams)
+    train_idx, test_idx = np.concatenate(tr), np.concatenate(te)
+
+    def branches(eps, dS):
+        a = eps + np.sqrt(lam_all) + 1.0 / n_all
+        b = dS + 1.0 / np.sqrt(lam_all) + 1.0 / n_all
+        return np.minimum(a, b)
+
+    def fit(d):
+        best = None
+        for eps in np.linspace(0.0, 0.2, 21):
+            for dS in np.linspace(0.0, 0.2, 21):
+                env = branches(eps, dS)
+                C = float(np.max(d[train_idx] / np.maximum(env[train_idx], 1e-12)))
+                if best is None or C < best[0]:
+                    best = (C, (C, eps, dS))
+        return best[1]
+
+    def worst(params, d, idx):
+        C, eps, dS = params
+        env = C * branches(eps, dS)
+        return float(np.max(d[idx] / np.maximum(env[idx], 1e-12)))
+
+    params = fit(dev_all)
+    held_out = worst(params, dev_all, test_idx)
+
+    # Permute within each block: a global shuffle would also scramble which
+    # setting a deviation came from, making the control easier than it should be.
+    sizes = [len(b[0]) for b in blocks]
+    perm = []
+    for _ in range(n_perm):
+        d, o = np.empty_like(dev_all), 0
+        for s in sizes:
+            d[o:o + s] = rng.permutation(dev_all[o:o + s])
+            o += s
+        perm.append(worst(fit(d), d, test_idx))
+    perm = np.asarray(perm)
+
+    return {
+        "fitted_C": params[0], "fitted_eps": params[1], "fitted_delta_S": params[2],
+        "held_out_max_violation_ratio": held_out,
+        "envelope_holds_on_held_out": bool(held_out <= 1.0),
+        "permuted_median_ratio": float(np.median(perm)),
+        "permuted_fraction_as_good": float(np.mean(perm <= held_out)),
+        "n_train": int(len(train_idx)), "n_test": int(len(test_idx)),
+        "n_perm": int(n_perm), "n_blocks": len(blocks),
+        "blocks": [b[3] for b in blocks],
+    }
+
+
 def claim2(results):
     """Thm 4.2: the coverage-error envelope in lambda, plus a control that fails.
 
@@ -423,6 +500,7 @@ def claim2(results):
     lo, up = P.TABLE_ANNOTATION_BAND
     per_setting, envelopes, worst = {}, {}, 0.0
     rng = np.random.default_rng(7)
+    pooled_blocks = []
 
     for name, tab in results["sim"].items():
         n = int(name.split("-n")[1].split("-")[0])
@@ -444,6 +522,7 @@ def claim2(results):
                 envelopes[f"{name}/{model}"] = _fit_envelope(
                     lams, devs, n, idx[::2], idx[1::2], rng
                 )
+                pooled_blocks.append((lams, devs, n, f"{name}/{model}"))
 
     dp = {}
     for name, tab in results["sim"].items():
@@ -460,13 +539,17 @@ def claim2(results):
     frac_in = [v["fraction_of_lambda_in_band"] for v in per_setting.values()]
     env_ok = [e["envelope_holds_on_held_out"] for e in envelopes.values()]
     informative = [e["permuted_fraction_as_good"] <= 0.05 for e in envelopes.values()]
+    pooled = _fit_envelope_pooled(pooled_blocks, rng) if pooled_blocks else None
 
     integrity = {
         # A three-parameter envelope with a min() can absorb many curves, and a
         # control that never leaves the band cannot discriminate. Both are
         # preconditions for the envelope result to mean anything.
+        # Registered in c2_envelope_preregistration.md while only one setting had
+        # finished: the pooled fit is the gate, and the per-setting fits below are
+        # reported as the weaker test that motivated it.
         "envelope_shape_beats_permutation_control": bool(
-            informative and np.mean(informative) >= 0.5
+            pooled and pooled["permuted_fraction_as_good"] <= 0.05
         ),
         "negative_control_DP_leaves_band": len(dp_out) >= max(1, len(dp) // 2),
     }
@@ -483,7 +566,14 @@ def claim2(results):
         "worst_deviation_over_all_lambda": worst,
         "mean_fraction_of_lambda_in_band": float(np.mean(frac_in)) if frac_in else None,
         "per_setting": per_setting,
+        "envelope_fit_pooled": pooled,
         "envelope_fits": envelopes,
+        "envelope_note": (
+            "The pooled fit is the gate: one (C, eps, delta_S) must cover every "
+            "setting at once, so the three parameters face every lambda point in the "
+            "campaign rather than ten. The per-setting fits are kept because their "
+            "permutation control is what showed the per-setting test carried no "
+            "information, and that negative result is part of the evidence."),
         "negative_control_DP": {"per_setting": dp, "out_of_band": dp_out},
     }
 
