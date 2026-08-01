@@ -149,14 +149,25 @@ def run(cfg, upstream_root):
             enforced.append(float(tuner_list[i].get_delta_norm()))
 
         # ---- intervention: is the UNLABELED TARGET sample actually used? -----
-        # Tracing shows unlabeled target covariates are passed in. This shows they
-        # change the answer: refitting against covariates drawn from the SOURCE
-        # instead must move the solution, or the transduction does no work.
+        # Tracing shows unlabeled target covariates are passed in; this shows they
+        # change the answer. Refitting against SOURCE-drawn covariates is the
+        # treatment -- but "the answer changed" needs a scale, or the threshold is
+        # arbitrary. So the treatment is compared against a matched NULL: a second
+        # independent draw of the unlabeled TARGET sample, which changes the input
+        # without changing its distribution. Only a treatment shift larger than
+        # that null shift is evidence that the target distribution -- not just
+        # resampling noise -- is what moves the fit.
+        mid_i = len(lbds) // 2
         setseed(seed_rep + 10_000)
         sham_X = generate_agent(m, d, me_s, gamma_s, mu_s, dtype).X
-        mid_i = len(lbds) // 2
         p_sham, d_sham = fit(deepcopy(slcp.tuner), lbds[mid_i], sham_X)
+        setseed(seed_rep + 20_000)
+        null_X = generate_agent(m, d, me_t, gamma_t, mu_t, dtype).X
+        p_null, d_null = fit(deepcopy(slcp.tuner), lbds[mid_i], null_X)
         mid = raw[mid_i]
+
+        def rel(new, base):
+            return abs(float(new) - float(base)) / max(abs(float(base)), 1e-12)
 
         per_repeat.append({
             "repeat": rep,
@@ -175,15 +186,23 @@ def run(cfg, upstream_root):
                                      "delta_sq_norm": mid["delta_sq_norm"]},
                 "source_unlabeled_sham": {"discrepancy": float(p_sham),
                                           "delta_sq_norm": float(d_sham)},
-                "relative_shift": abs(float(d_sham) - mid["delta_sq_norm"])
-                                  / max(abs(mid["delta_sq_norm"]), 1e-12),
+                "target_resample_null": {"discrepancy": float(p_null),
+                                         "delta_sq_norm": float(d_null)},
+                "treatment_shift_discrepancy": rel(p_sham, mid["discrepancy"]),
+                "null_shift_discrepancy": rel(p_null, mid["discrepancy"]),
+                "treatment_shift_delta_sq": rel(d_sham, mid["delta_sq_norm"]),
+                "null_shift_delta_sq": rel(d_null, mid["delta_sq_norm"]),
             },
         })
 
     raw_delta = np.array([[q["delta_sq_norm"] for q in p["raw_path"]] for p in per_repeat])
     raw_disc = np.array([[q["discrepancy"] for q in p["raw_path"]] for p in per_repeat])
     enf_delta = np.array([p["enforced_delta_sq_norm_by_lambda"] for p in per_repeat])
-    shifts = np.array([p["unlabeled_sample_intervention"]["relative_shift"] for p in per_repeat])
+    iv = [p["unlabeled_sample_intervention"] for p in per_repeat]
+    t_disc = np.array([x["treatment_shift_discrepancy"] for x in iv])
+    n_disc = np.array([x["null_shift_discrepancy"] for x in iv])
+    t_delta = np.array([x["treatment_shift_delta_sq"] for x in iv])
+    n_delta = np.array([x["null_shift_delta_sq"] for x in iv])
     obj_ok = all(
         abs(q["objective"] - (q["discrepancy"] + q["lambda"] * q["delta_sq_norm"])) < 1e-9
         for p in per_repeat for q in p["raw_path"]
@@ -218,11 +237,25 @@ def run(cfg, upstream_root):
                      "weight for Claim 1."),
         },
         "unlabeled_target_intervention": {
-            "description": ("Refit at the median lambda against covariates drawn from the SOURCE "
-                            "instead of the unlabeled TARGET sample."),
-            "mean_relative_shift_in_delta_sq": float(shifts.mean()),
-            "min_relative_shift_in_delta_sq": float(shifts.min()),
-            "moved_in_every_repeat": bool(np.all(shifts > 1e-3)),
+            "description": (
+                "At the median lambda, refit against (a) SOURCE-drawn covariates -- the treatment -- "
+                "and (b) a second independent draw of the unlabeled TARGET sample -- the matched "
+                "null. The null changes the input without changing its distribution, so it "
+                "calibrates how much movement is mere resampling noise and removes the need for an "
+                "arbitrary threshold."),
+            "statistic_note": (
+                "The primary statistic is the discrepancy term, which is what the objective "
+                "optimises against the unlabeled sample. ||theta - theta_hat||^2 is reported too but "
+                "is a poor movement detector: it is a scalar norm, so two genuinely different "
+                "solutions can share one. In repeat 0 of an earlier run the norm moved 0.03% while "
+                "the discrepancy moved 4.4%."),
+            "mean_treatment_shift_discrepancy": float(t_disc.mean()),
+            "mean_null_shift_discrepancy": float(n_disc.mean()),
+            "treatment_exceeds_null_discrepancy_per_repeat": [bool(x) for x in (t_disc > n_disc)],
+            "treatment_exceeds_null_in_every_repeat": bool(np.all(t_disc > n_disc)),
+            "treatment_exceeds_null_in_majority": bool(np.mean(t_disc > n_disc) > 0.5),
+            "mean_treatment_shift_delta_sq": float(t_delta.mean()),
+            "mean_null_shift_delta_sq": float(n_delta.mean()),
         },
     }
 

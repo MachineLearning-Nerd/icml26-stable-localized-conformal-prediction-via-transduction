@@ -390,14 +390,20 @@ def _c1(a):
         "",
         "### 4. Intervention — the unlabeled target sample actually does the work",
         "",
-        f"{it['description']} Tracing shows the unlabeled covariates are *passed in*; this shows they",
-        "*change the answer*. Had the solution not moved, the transduction would be inert.",
+        f"{it['description']}",
         "",
-        "| Quantity | Value |",
-        "| --- | --- |",
-        f"| mean relative shift in ‖δ‖² | {f(it['mean_relative_shift_in_delta_sq'], 4)} |",
-        f"| smallest relative shift across repeats | {f(it['min_relative_shift_in_delta_sq'], 4)} |",
-        f"| solution moved in every repeat | {f(it['moved_in_every_repeat'])} |",
+        "| Statistic | Treatment (source covariates) | Matched null (target resample) |",
+        "| --- | --- | --- |",
+        f"| mean relative shift in discrepancy | {f(it['mean_treatment_shift_discrepancy'], 4)} | "
+        f"{f(it['mean_null_shift_discrepancy'], 4)} |",
+        f"| mean relative shift in ‖θ̃ − θ̂‖₂² | {f(it['mean_treatment_shift_delta_sq'], 4)} | "
+        f"{f(it['mean_null_shift_delta_sq'], 4)} |",
+        "",
+        f"Treatment exceeds the null in {sum(it['treatment_exceeds_null_discrepancy_per_repeat'])} of "
+        f"{len(it['treatment_exceeds_null_discrepancy_per_repeat'])} repeats "
+        f"(per repeat: {it['treatment_exceeds_null_discrepancy_per_repeat']}).",
+        "",
+        f"> {it['statistic_note']}",
         "",
         "### Not checked, and why",
         "",

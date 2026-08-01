@@ -1,0 +1,972 @@
+{
+ "kind": "invariants",
+ "dtype": "logabs",
+ "n": 30,
+ "m": 500,
+ "reps": 5,
+ "lambda_grid": [
+  0.0,
+  0.0005,
+  0.00075,
+  0.001,
+  0.002,
+  0.005,
+  0.0075,
+  0.01,
+  0.02,
+  0.03,
+  0.05,
+  0.075,
+  0.1,
+  0.15,
+  0.2,
+  0.25,
+  0.3,
+  0.4,
+  0.5
+ ],
+ "seconds": 856.7,
+ "provenance": {
+  "F_hat_S_given_X_trained_on": {
+   "agent": "predAgent",
+   "distribution": "SOURCE (mu_s=0, gamma_s=1.20, me_s=d/3)",
+   "n_rows": 2000,
+   "uses_target_labels": false
+  },
+  "predictor_trained_on": {
+   "agent": "trAgent",
+   "distribution": "SOURCE",
+   "n_rows": 2000
+  },
+  "note": "Both are built before any target data is generated, so no target label can reach them."
+ },
+ "per_repeat": [
+  {
+   "repeat": 0,
+   "n_calibration": 30,
+   "m_unlabeled": 500,
+   "raw_path": [
+    {
+     "lambda": 0.0,
+     "discrepancy": 1.2231750588398427e-05,
+     "delta_sq_norm": 166.6478271484375,
+     "objective": 1.2231750588398427e-05
+    },
+    {
+     "lambda": 0.0005,
+     "discrepancy": 0.0012678781058639288,
+     "delta_sq_norm": 2.9499263763427734,
+     "objective": 0.0027428412940353154
+    },
+    {
+     "lambda": 0.00075,
+     "discrepancy": 0.001295758760534227,
+     "delta_sq_norm": 2.260596990585327,
+     "objective": 0.002991206503473222
+    },
+    {
+     "lambda": 0.001,
+     "discrepancy": 0.0014491792535409331,
+     "delta_sq_norm": 2.0438785552978516,
+     "objective": 0.003493057808838785
+    },
+    {
+     "lambda": 0.002,
+     "discrepancy": 0.0020017579663544893,
+     "delta_sq_norm": 1.4750843048095703,
+     "objective": 0.0049519265759736305
+    },
+    {
+     "lambda": 0.005,
+     "discrepancy": 0.0035614431835711002,
+     "delta_sq_norm": 0.9309794306755066,
+     "objective": 0.008216340336948633
+    },
+    {
+     "lambda": 0.0075,
+     "discrepancy": 0.004395265132188797,
+     "delta_sq_norm": 0.6873586177825928,
+     "objective": 0.009550454765558242
+    },
+    {
+     "lambda": 0.01,
+     "discrepancy": 0.005375313106924295,
+     "delta_sq_norm": 0.5743201375007629,
+     "objective": 0.011118514481931924
+    },
+    {
+     "lambda": 0.02,
+     "discrepancy": 0.008206154219806194,
+     "delta_sq_norm": 0.28639382123947144,
+     "objective": 0.013934030644595623
+    },
+    {
+     "lambda": 0.03,
+     "discrepancy": 0.010397864505648613,
+     "delta_sq_norm": 0.16669002175331116,
+     "objective": 0.015398565158247947
+    },
+    {
+     "lambda": 0.05,
+     "discrepancy": 0.012598690576851368,
+     "delta_sq_norm": 0.08311095833778381,
+     "objective": 0.01675423849374056
+    },
+    {
+     "lambda": 0.075,
+     "discrepancy": 0.01389048807322979,
+     "delta_sq_norm": 0.053549349308013916,
+     "objective": 0.017906689271330833
+    },
+    {
+     "lambda": 0.1,
+     "discrepancy": 0.014323742128908634,
+     "delta_sq_norm": 0.042258620262145996,
+     "objective": 0.018549604155123234
+    },
+    {
+     "lambda": 0.15,
+     "discrepancy": 0.015170585364103317,
+     "delta_sq_norm": 0.025066591799259186,
+     "objective": 0.018930574133992194
+    },
+    {
+     "lambda": 0.2,
+     "discrepancy": 0.01650022156536579,
+     "delta_sq_norm": 0.010828403756022453,
+     "objective": 0.018665902316570282
+    },
+    {
+     "lambda": 0.25,
+     "discrepancy": 0.01637144945561886,
+     "delta_sq_norm": 0.009741514921188354,
+     "objective": 0.018806828185915947
+    },
+    {
+     "lambda": 0.3,
+     "discrepancy": 0.01672464981675148,
+     "delta_sq_norm": 0.006515917833894491,
+     "objective": 0.018679425166919828
+    },
+    {
+     "lambda": 0.4,
+     "discrepancy": 0.017128001898527145,
+     "delta_sq_norm": 0.004999376833438873,
+     "objective": 0.019127752631902695
+    },
+    {
+     "lambda": 0.5,
+     "discrepancy": 0.017146628350019455,
+     "delta_sq_norm": 0.004160603042691946,
+     "objective": 0.019226929871365428
+    }
+   ],
+   "enforced_delta_sq_norm_by_lambda": [
+    166.6478271484375,
+    3.6712310314178467,
+    3.1101884841918945,
+    2.358098268508911,
+    1.7012852430343628,
+    1.0741699934005737,
+    0.8489224314689636,
+    0.6792892217636108,
+    0.4635486304759979,
+    0.35510343313217163,
+    0.2551976442337036,
+    0.22739356756210327,
+    0.21421459317207336,
+    0.19342567026615143,
+    0.02494882419705391,
+    0.011051658540964127,
+    0.009452350437641144,
+    0.0052063800394535065,
+    0.0047608185559511185
+   ],
+   "beta_level_q_by_lambda": [
+    0.9809963703155518,
+    0.9864649772644043,
+    0.9883441925048828,
+    0.9870163798332214,
+    0.9810968637466431,
+    0.9759171009063721,
+    0.9733567237854004,
+    0.9686375260353088,
+    0.9592243432998657,
+    0.9517546892166138,
+    0.9443842172622681,
+    0.9375594258308411,
+    0.9388547539710999,
+    0.9359762072563171,
+    0.9341258406639099,
+    0.9321126341819763,
+    0.9307349324226379,
+    0.9295834898948669,
+    0.9301642775535583
+   ],
+   "beta_level_note": "SLCP.q is a PROBABILITY level in [0,1]: it is passed as the `q` argument of Generator.quantile (Main/SLCP.py:90), not a score threshold. It is reported for completeness and is deliberately NOT compared against a score quantile.",
+   "unlabeled_sample_intervention": {
+    "lambda": 0.03,
+    "target_unlabeled": {
+     "discrepancy": 0.010397864505648613,
+     "delta_sq_norm": 0.16669002175331116
+    },
+    "source_unlabeled_sham": {
+     "discrepancy": 0.009936809539794922,
+     "delta_sq_norm": 0.16664062440395355
+    },
+    "relative_shift": 0.0002963425695073061
+   }
+  },
+  {
+   "repeat": 1,
+   "n_calibration": 30,
+   "m_unlabeled": 500,
+   "raw_path": [
+    {
+     "lambda": 0.0,
+     "discrepancy": 0.00030583946499973536,
+     "delta_sq_norm": 46.09938049316406,
+     "objective": 0.00030583946499973536
+    },
+    {
+     "lambda": 0.0005,
+     "discrepancy": 0.0005886097205802798,
+     "delta_sq_norm": 1.4835044145584106,
+     "objective": 0.0013303619278594852
+    },
+    {
+     "lambda": 0.00075,
+     "discrepancy": 0.0007137072971090674,
+     "delta_sq_norm": 1.1234698295593262,
+     "objective": 0.0015563096692785621
+    },
+    {
+     "lambda": 0.001,
+     "discrepancy": 0.0009395122178830206,
+     "delta_sq_norm": 0.9381508827209473,
+     "objective": 0.0018776631006039678
+    },
+    {
+     "lambda": 0.002,
+     "discrepancy": 0.001230567810125649,
+     "delta_sq_norm": 0.5979560017585754,
+     "objective": 0.0024264798136428
+    },
+    {
+     "lambda": 0.005,
+     "discrepancy": 0.0015072673559188843,
+     "delta_sq_norm": 0.20763936638832092,
+     "objective": 0.002545464187860489
+    },
+    {
+     "lambda": 0.0075,
+     "discrepancy": 0.0018566502258181572,
+     "delta_sq_norm": 0.15750448405742645,
+     "objective": 0.0030379338562488553
+    },
+    {
+     "lambda": 0.01,
+     "discrepancy": 0.0017895414493978024,
+     "delta_sq_norm": 0.09304722398519516,
+     "objective": 0.002720013689249754
+    },
+    {
+     "lambda": 0.02,
+     "discrepancy": 0.0020129848271608353,
+     "delta_sq_norm": 0.04875907674431801,
+     "objective": 0.0029881663620471956
+    },
+    {
+     "lambda": 0.03,
+     "discrepancy": 0.0022143330425024033,
+     "delta_sq_norm": 0.02834821492433548,
+     "objective": 0.0030647794902324676
+    },
+    {
+     "lambda": 0.05,
+     "discrepancy": 0.0024563141632825136,
+     "delta_sq_norm": 0.020755792036652565,
+     "objective": 0.003494103765115142
+    },
+    {
+     "lambda": 0.075,
+     "discrepancy": 0.00262197433039546,
+     "delta_sq_norm": 0.008953381329774857,
+     "objective": 0.0032934779301285744
+    },
+    {
+     "lambda": 0.1,
+     "discrepancy": 0.0026475514750927687,
+     "delta_sq_norm": 0.005040522664785385,
+     "objective": 0.003151603741571307
+    },
+    {
+     "lambda": 0.15,
+     "discrepancy": 0.0026883387472480536,
+     "delta_sq_norm": 0.0033425786532461643,
+     "objective": 0.0031897255452349783
+    },
+    {
+     "lambda": 0.2,
+     "discrepancy": 0.002686810214072466,
+     "delta_sq_norm": 0.002362550236284733,
+     "objective": 0.0031593202613294123
+    },
+    {
+     "lambda": 0.25,
+     "discrepancy": 0.002742412965744734,
+     "delta_sq_norm": 0.0014173380332067609,
+     "objective": 0.003096747474046424
+    },
+    {
+     "lambda": 0.3,
+     "discrepancy": 0.002809209283441305,
+     "delta_sq_norm": 0.0018205929081887007,
+     "objective": 0.0033553871558979153
+    },
+    {
+     "lambda": 0.4,
+     "discrepancy": 0.002817060798406601,
+     "delta_sq_norm": 0.0007757507264614105,
+     "objective": 0.003127361088991165
+    },
+    {
+     "lambda": 0.5,
+     "discrepancy": 0.0028093536384403706,
+     "delta_sq_norm": 0.0003748961607925594,
+     "objective": 0.0029968017188366503
+    }
+   ],
+   "enforced_delta_sq_norm_by_lambda": [
+    46.09938049316406,
+    1.7481435537338257,
+    1.1596908569335938,
+    1.0524154901504517,
+    0.5846892595291138,
+    0.30526623129844666,
+    0.18654367327690125,
+    0.09307309985160828,
+    0.04530373960733414,
+    0.03004636988043785,
+    0.015807826071977615,
+    0.009284510277211666,
+    0.006088197231292725,
+    0.002666561398655176,
+    0.002577164676040411,
+    0.001051640952937305,
+    0.00043053552508354187,
+    0.0002924507134594023,
+    0.00018174960860051215
+   ],
+   "beta_level_q_by_lambda": [
+    0.9009529948234558,
+    0.9057797193527222,
+    0.9083912372589111,
+    0.9078789353370667,
+    0.908165693283081,
+    0.9140526652336121,
+    0.9207544922828674,
+    0.9218156933784485,
+    0.9225614666938782,
+    0.9282744526863098,
+    0.9297491312026978,
+    0.9297127723693848,
+    0.9306864738464355,
+    0.929493248462677,
+    0.9327865839004517,
+    0.9318606853485107,
+    0.9317501783370972,
+    0.9314269423484802,
+    0.9322487711906433
+   ],
+   "beta_level_note": "SLCP.q is a PROBABILITY level in [0,1]: it is passed as the `q` argument of Generator.quantile (Main/SLCP.py:90), not a score threshold. It is reported for completeness and is deliberately NOT compared against a score quantile.",
+   "unlabeled_sample_intervention": {
+    "lambda": 0.03,
+    "target_unlabeled": {
+     "discrepancy": 0.0022143330425024033,
+     "delta_sq_norm": 0.02834821492433548
+    },
+    "source_unlabeled_sham": {
+     "discrepancy": 0.0023024657275527716,
+     "delta_sq_norm": 0.02439839579164982
+    },
+    "relative_shift": 0.1393321993370011
+   }
+  },
+  {
+   "repeat": 2,
+   "n_calibration": 30,
+   "m_unlabeled": 500,
+   "raw_path": [
+    {
+     "lambda": 0.0,
+     "discrepancy": 0.0003652405575849116,
+     "delta_sq_norm": 34.088584899902344,
+     "objective": 0.0003652405575849116
+    },
+    {
+     "lambda": 0.0005,
+     "discrepancy": 0.0006569368415512145,
+     "delta_sq_norm": 1.098822832107544,
+     "objective": 0.0012063482576049865
+    },
+    {
+     "lambda": 0.00075,
+     "discrepancy": 0.0007849690737202764,
+     "delta_sq_norm": 0.8101822137832642,
+     "objective": 0.0013926057340577246
+    },
+    {
+     "lambda": 0.001,
+     "discrepancy": 0.000801542482804507,
+     "delta_sq_norm": 0.6911172270774841,
+     "objective": 0.0014926597098819912
+    },
+    {
+     "lambda": 0.002,
+     "discrepancy": 0.0010043538641184568,
+     "delta_sq_norm": 0.44663703441619873,
+     "objective": 0.0018976279329508544
+    },
+    {
+     "lambda": 0.005,
+     "discrepancy": 0.001308147213421762,
+     "delta_sq_norm": 0.23781976103782654,
+     "objective": 0.002497246018610895
+    },
+    {
+     "lambda": 0.0075,
+     "discrepancy": 0.001373046892695129,
+     "delta_sq_norm": 0.1941312849521637,
+     "objective": 0.0028290315298363563
+    },
+    {
+     "lambda": 0.01,
+     "discrepancy": 0.0014904889976605773,
+     "delta_sq_norm": 0.17698733508586884,
+     "objective": 0.0032603623485192657
+    },
+    {
+     "lambda": 0.02,
+     "discrepancy": 0.001992590259760618,
+     "delta_sq_norm": 0.11176279187202454,
+     "objective": 0.004227846097201109
+    },
+    {
+     "lambda": 0.03,
+     "discrepancy": 0.002554898615926504,
+     "delta_sq_norm": 0.08250284940004349,
+     "objective": 0.005029984097927809
+    },
+    {
+     "lambda": 0.05,
+     "discrepancy": 0.0031437897123396397,
+     "delta_sq_norm": 0.06469330936670303,
+     "objective": 0.006378455180674791
+    },
+    {
+     "lambda": 0.075,
+     "discrepancy": 0.004756002686917782,
+     "delta_sq_norm": 0.03602904826402664,
+     "objective": 0.007458181306719779
+    },
+    {
+     "lambda": 0.1,
+     "discrepancy": 0.005029320251196623,
+     "delta_sq_norm": 0.027568019926548004,
+     "objective": 0.007786122243851423
+    },
+    {
+     "lambda": 0.15,
+     "discrepancy": 0.005867217667400837,
+     "delta_sq_norm": 0.018185490742325783,
+     "objective": 0.008595041278749705
+    },
+    {
+     "lambda": 0.2,
+     "discrepancy": 0.007020523305982351,
+     "delta_sq_norm": 0.00937248021364212,
+     "objective": 0.008895019348710776
+    },
+    {
+     "lambda": 0.25,
+     "discrepancy": 0.007228038739413023,
+     "delta_sq_norm": 0.0066327922977507114,
+     "objective": 0.0088862368138507
+    },
+    {
+     "lambda": 0.3,
+     "discrepancy": 0.00745708541944623,
+     "delta_sq_norm": 0.005654781125485897,
+     "objective": 0.009153519757091999
+    },
+    {
+     "lambda": 0.4,
+     "discrepancy": 0.008038681000471115,
+     "delta_sq_norm": 0.0031900815665721893,
+     "objective": 0.00931471362709999
+    },
+    {
+     "lambda": 0.5,
+     "discrepancy": 0.00829276628792286,
+     "delta_sq_norm": 0.0024062294978648424,
+     "objective": 0.00949588103685528
+    }
+   ],
+   "enforced_delta_sq_norm_by_lambda": [
+    34.088584899902344,
+    1.115433931350708,
+    0.9140243530273438,
+    0.7330576181411743,
+    0.43353620171546936,
+    0.23573800921440125,
+    0.18117761611938477,
+    0.1589268147945404,
+    0.10536620020866394,
+    0.08002743124961853,
+    0.05634694918990135,
+    0.03190981596708298,
+    0.02624553255736828,
+    0.014166368171572685,
+    0.007994446903467178,
+    0.005451991688460112,
+    0.003996694460511208,
+    0.002431316301226616,
+    0.0018872021464630961
+   ],
+   "beta_level_q_by_lambda": [
+    0.8802128434181213,
+    0.8797901272773743,
+    0.8791332840919495,
+    0.8808072805404663,
+    0.8787742853164673,
+    0.8784002065658569,
+    0.8824877738952637,
+    0.8816226124763489,
+    0.8837805986404419,
+    0.8912092447280884,
+    0.898423433303833,
+    0.9063287973403931,
+    0.9095811247825623,
+    0.9163159728050232,
+    0.9192196726799011,
+    0.9213352203369141,
+    0.9224033951759338,
+    0.9237825274467468,
+    0.9241452217102051
+   ],
+   "beta_level_note": "SLCP.q is a PROBABILITY level in [0,1]: it is passed as the `q` argument of Generator.quantile (Main/SLCP.py:90), not a score threshold. It is reported for completeness and is deliberately NOT compared against a score quantile.",
+   "unlabeled_sample_intervention": {
+    "lambda": 0.03,
+    "target_unlabeled": {
+     "discrepancy": 0.002554898615926504,
+     "delta_sq_norm": 0.08250284940004349
+    },
+    "source_unlabeled_sham": {
+     "discrepancy": 0.002355624223127961,
+     "delta_sq_norm": 0.07851263135671616
+    },
+    "relative_shift": 0.04836460888737775
+   }
+  },
+  {
+   "repeat": 3,
+   "n_calibration": 30,
+   "m_unlabeled": 500,
+   "raw_path": [
+    {
+     "lambda": 0.0,
+     "discrepancy": 0.00013124439283274114,
+     "delta_sq_norm": 33.781471252441406,
+     "objective": 0.00013124439283274114
+    },
+    {
+     "lambda": 0.0005,
+     "discrepancy": 0.00047976645873859525,
+     "delta_sq_norm": 0.9812539219856262,
+     "objective": 0.0009703934197314083
+    },
+    {
+     "lambda": 0.00075,
+     "discrepancy": 0.0004961782833561301,
+     "delta_sq_norm": 0.7844225764274597,
+     "objective": 0.001084495215676725
+    },
+    {
+     "lambda": 0.001,
+     "discrepancy": 0.000544846523553133,
+     "delta_sq_norm": 0.645054042339325,
+     "objective": 0.001189900565892458
+    },
+    {
+     "lambda": 0.002,
+     "discrepancy": 0.0007034296286292374,
+     "delta_sq_norm": 0.3509402573108673,
+     "objective": 0.0014053101432509722
+    },
+    {
+     "lambda": 0.005,
+     "discrepancy": 0.001084274030290544,
+     "delta_sq_norm": 0.134467214345932,
+     "objective": 0.001756610102020204
+    },
+    {
+     "lambda": 0.0075,
+     "discrepancy": 0.0011944557772949338,
+     "delta_sq_norm": 0.10042876750230789,
+     "objective": 0.001947671533562243
+    },
+    {
+     "lambda": 0.01,
+     "discrepancy": 0.0012381018605083227,
+     "delta_sq_norm": 0.06873219460248947,
+     "objective": 0.0019254238065332175
+    },
+    {
+     "lambda": 0.02,
+     "discrepancy": 0.001426901202648878,
+     "delta_sq_norm": 0.029513485729694366,
+     "objective": 0.0020171709172427657
+    },
+    {
+     "lambda": 0.03,
+     "discrepancy": 0.001562961027957499,
+     "delta_sq_norm": 0.017372187227010727,
+     "objective": 0.0020841266447678207
+    },
+    {
+     "lambda": 0.05,
+     "discrepancy": 0.0016630878672003746,
+     "delta_sq_norm": 0.00857951957732439,
+     "objective": 0.0020920638460665943
+    },
+    {
+     "lambda": 0.075,
+     "discrepancy": 0.0017643371829763055,
+     "delta_sq_norm": 0.004405282437801361,
+     "objective": 0.0020947333658114077
+    },
+    {
+     "lambda": 0.1,
+     "discrepancy": 0.0017937732627615333,
+     "delta_sq_norm": 0.0034413482062518597,
+     "objective": 0.0021379080833867194
+    },
+    {
+     "lambda": 0.15,
+     "discrepancy": 0.001811864203773439,
+     "delta_sq_norm": 0.001814070506952703,
+     "objective": 0.0020839747798163445
+    },
+    {
+     "lambda": 0.2,
+     "discrepancy": 0.0018219283083453774,
+     "delta_sq_norm": 0.0016318510752171278,
+     "objective": 0.002148298523388803
+    },
+    {
+     "lambda": 0.25,
+     "discrepancy": 0.001900833798572421,
+     "delta_sq_norm": 0.0010154923656955361,
+     "objective": 0.002154706889996305
+    },
+    {
+     "lambda": 0.3,
+     "discrepancy": 0.0018927279161289334,
+     "delta_sq_norm": 0.0006896753911860287,
+     "objective": 0.002099630533484742
+    },
+    {
+     "lambda": 0.4,
+     "discrepancy": 0.0019303009612485766,
+     "delta_sq_norm": 0.0003614439629018307,
+     "objective": 0.002074878546409309
+    },
+    {
+     "lambda": 0.5,
+     "discrepancy": 0.0019371564267203212,
+     "delta_sq_norm": 0.000239989924011752,
+     "objective": 0.002057151388726197
+    }
+   ],
+   "enforced_delta_sq_norm_by_lambda": [
+    33.781471252441406,
+    1.0029102563858032,
+    0.8641045093536377,
+    0.6118460893630981,
+    0.37561947107315063,
+    0.14567746222019196,
+    0.10385458171367645,
+    0.07378241419792175,
+    0.027798514813184738,
+    0.016378527507185936,
+    0.008464218117296696,
+    0.0034946813248097897,
+    0.002355626318603754,
+    0.0014194241957738996,
+    0.0006877652485854924,
+    0.0007873918511904776,
+    0.00046954560093581676,
+    0.00027265469543635845,
+    0.00016770341608207673
+   ],
+   "beta_level_q_by_lambda": [
+    0.9405797719955444,
+    0.9386968016624451,
+    0.9384719729423523,
+    0.9376283288002014,
+    0.938133180141449,
+    0.9387207627296448,
+    0.9371200799942017,
+    0.9394834041595459,
+    0.9375145435333252,
+    0.9389750957489014,
+    0.9370201230049133,
+    0.9358208179473877,
+    0.9367364645004272,
+    0.9365939497947693,
+    0.9351972937583923,
+    0.9356815814971924,
+    0.9355563521385193,
+    0.9354909658432007,
+    0.936217725276947
+   ],
+   "beta_level_note": "SLCP.q is a PROBABILITY level in [0,1]: it is passed as the `q` argument of Generator.quantile (Main/SLCP.py:90), not a score threshold. It is reported for completeness and is deliberately NOT compared against a score quantile.",
+   "unlabeled_sample_intervention": {
+    "lambda": 0.03,
+    "target_unlabeled": {
+     "discrepancy": 0.001562961027957499,
+     "delta_sq_norm": 0.017372187227010727
+    },
+    "source_unlabeled_sham": {
+     "discrepancy": 0.0014479145174846053,
+     "delta_sq_norm": 0.01681927777826786
+    },
+    "relative_shift": 0.03182727894408072
+   }
+  },
+  {
+   "repeat": 4,
+   "n_calibration": 30,
+   "m_unlabeled": 500,
+   "raw_path": [
+    {
+     "lambda": 0.0,
+     "discrepancy": 0.0003007708000950515,
+     "delta_sq_norm": 33.12330627441406,
+     "objective": 0.0003007708000950515
+    },
+    {
+     "lambda": 0.0005,
+     "discrepancy": 0.0005484857829287648,
+     "delta_sq_norm": 1.3441412448883057,
+     "objective": 0.0012205564053729178
+    },
+    {
+     "lambda": 0.00075,
+     "discrepancy": 0.0007047040271572769,
+     "delta_sq_norm": 1.1004523038864136,
+     "objective": 0.0015300432550720872
+    },
+    {
+     "lambda": 0.001,
+     "discrepancy": 0.0008068816387094557,
+     "delta_sq_norm": 0.8934459090232849,
+     "objective": 0.0017003275477327406
+    },
+    {
+     "lambda": 0.002,
+     "discrepancy": 0.001017094822600484,
+     "delta_sq_norm": 0.554624080657959,
+     "objective": 0.002126342983916402
+    },
+    {
+     "lambda": 0.005,
+     "discrepancy": 0.001439937623217702,
+     "delta_sq_norm": 0.3011285662651062,
+     "objective": 0.0029455804545432326
+    },
+    {
+     "lambda": 0.0075,
+     "discrepancy": 0.0016334957908838987,
+     "delta_sq_norm": 0.23921720683574677,
+     "objective": 0.0034276248421519994
+    },
+    {
+     "lambda": 0.01,
+     "discrepancy": 0.0017450939631089568,
+     "delta_sq_norm": 0.2157432734966278,
+     "objective": 0.003902526698075235
+    },
+    {
+     "lambda": 0.02,
+     "discrepancy": 0.0025548057164996862,
+     "delta_sq_norm": 0.12740646302700043,
+     "objective": 0.005102934977039695
+    },
+    {
+     "lambda": 0.03,
+     "discrepancy": 0.0031123803928494453,
+     "delta_sq_norm": 0.09383174777030945,
+     "objective": 0.005927332825958729
+    },
+    {
+     "lambda": 0.05,
+     "discrepancy": 0.004015146289020777,
+     "delta_sq_norm": 0.060691311955451965,
+     "objective": 0.007049711886793375
+    },
+    {
+     "lambda": 0.075,
+     "discrepancy": 0.00556898582726717,
+     "delta_sq_norm": 0.03322463855147362,
+     "objective": 0.008060833718627692
+    },
+    {
+     "lambda": 0.1,
+     "discrepancy": 0.006234011147171259,
+     "delta_sq_norm": 0.025518454611301422,
+     "objective": 0.0087858566083014
+    },
+    {
+     "lambda": 0.15,
+     "discrepancy": 0.007026021368801594,
+     "delta_sq_norm": 0.016906125470995903,
+     "objective": 0.009561940189450979
+    },
+    {
+     "lambda": 0.2,
+     "discrepancy": 0.007415217347443104,
+     "delta_sq_norm": 0.013305061496794224,
+     "objective": 0.010076229646801948
+    },
+    {
+     "lambda": 0.25,
+     "discrepancy": 0.008058929815888405,
+     "delta_sq_norm": 0.008536014705896378,
+     "objective": 0.0101929334923625
+    },
+    {
+     "lambda": 0.3,
+     "discrepancy": 0.008232716470956802,
+     "delta_sq_norm": 0.0068333870731294155,
+     "objective": 0.010282732592895628
+    },
+    {
+     "lambda": 0.4,
+     "discrepancy": 0.008739232085645199,
+     "delta_sq_norm": 0.004535180516541004,
+     "objective": 0.0105533042922616
+    },
+    {
+     "lambda": 0.5,
+     "discrepancy": 0.008909334428608418,
+     "delta_sq_norm": 0.0035527911968529224,
+     "objective": 0.010685730027034879
+    }
+   ],
+   "enforced_delta_sq_norm_by_lambda": [
+    33.12330627441406,
+    1.395954966545105,
+    1.1120636463165283,
+    0.8974833488464355,
+    0.5650273561477661,
+    0.2864486873149872,
+    0.21645450592041016,
+    0.19478148221969604,
+    0.13357165455818176,
+    0.09294755756855011,
+    0.05769651383161545,
+    0.040627334266901016,
+    0.024229420349001884,
+    0.01618039980530739,
+    0.012045793235301971,
+    0.006422716658562422,
+    0.005846583284437656,
+    0.003780717495828867,
+    0.002474674256518483
+   ],
+   "beta_level_q_by_lambda": [
+    0.9755045175552368,
+    0.97681725025177,
+    0.9777687191963196,
+    0.9794759154319763,
+    0.9753592610359192,
+    0.9742459058761597,
+    0.9731903076171875,
+    0.9702127575874329,
+    0.9665688276290894,
+    0.960219144821167,
+    0.9568523168563843,
+    0.9504542350769043,
+    0.9470016360282898,
+    0.946105420589447,
+    0.9437892436981201,
+    0.9396076202392578,
+    0.9389364719390869,
+    0.9378324747085571,
+    0.9372939467430115
+   ],
+   "beta_level_note": "SLCP.q is a PROBABILITY level in [0,1]: it is passed as the `q` argument of Generator.quantile (Main/SLCP.py:90), not a score threshold. It is reported for completeness and is deliberately NOT compared against a score quantile.",
+   "unlabeled_sample_intervention": {
+    "lambda": 0.03,
+    "target_unlabeled": {
+     "discrepancy": 0.0031123803928494453,
+     "delta_sq_norm": 0.09383174777030945
+    },
+    "source_unlabeled_sham": {
+     "discrepancy": 0.003430440090596676,
+     "delta_sq_norm": 0.08593247830867767
+    },
+    "relative_shift": 0.08418546653280275
+   }
+  }
+ ],
+ "objective_identity": {
+  "form": "L(lambda) = discrepancy(F_hat_S^0, F_hat_S^1) + lambda * ||theta - theta_hat||^2",
+  "source_anchor": "Main/Tuner.py:202",
+  "holds_for_every_lambda_and_repeat": true
+ },
+ "regularisation_path_unenforced": {
+  "mean_delta_sq_at_min_lambda": 62.748114013671874,
+  "mean_delta_sq_at_max_lambda": 0.0021469019644428044,
+  "shrinkage_ratio": 3.4214605461688084e-05,
+  "fraction_non_increasing_delta_steps": 0.9888888888888889,
+  "fraction_non_decreasing_discrepancy_steps": 0.9444444444444444,
+  "delta_shrinks_overall_in_every_repeat": true
+ },
+ "regularisation_path_enforced_by_check_order": {
+  "mean_delta_sq_at_min_lambda": 62.748114013671874,
+  "mean_delta_sq_at_max_lambda": 0.0018944295967230572,
+  "fraction_non_increasing_delta_steps": 0.9888888888888889,
+  "note": "Reported only to expose the difference. `check_order` re-trains lambdas that break the ordering, so monotonicity here is imposed and carries no evidential weight for Claim 1."
+ },
+ "unlabeled_target_intervention": {
+  "description": "Refit at the median lambda against covariates drawn from the SOURCE instead of the unlabeled TARGET sample.",
+  "mean_relative_shift_in_delta_sq": 0.060801179254153924,
+  "min_relative_shift_in_delta_sq": 0.0002963425695073061,
+  "moved_in_every_repeat": false
+ },
+ "wall_seconds": 965.48,
+ "environment": {
+  "git_sha": "302813d64571e1aeea4762aaac23cae90adb87be",
+  "python": "3.12.12",
+  "platform": "Linux-6.12.94-123.192.amzn2023.x86_64-x86_64-with-glibc2.36",
+  "os_cpu_count": 64,
+  "cgroup_cpu_quota": 8,
+  "threads_pinned": 8,
+  "numpy": "2.5.1",
+  "scipy": "1.18.0",
+  "torch": "2.13.0+cpu",
+  "torch_num_threads": 8,
+  "upstream_sha": "1d8df7614d49eada881426742688ba75fec631b9",
+  "node_config": {
+   "stage": "invariants",
+   "note": "Claim 1: provenance trace, lambda=0 conformal-quantile identity, lambda->inf theta shrinkage.",
+   "dtype": "logabs",
+   "n": 30,
+   "m": 500,
+   "reps": 5
+  }
+ }
+}
