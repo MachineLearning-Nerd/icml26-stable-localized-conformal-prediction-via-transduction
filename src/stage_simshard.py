@@ -26,6 +26,11 @@ def run(cfg, upstream_root):
 
     dtype, n, m = cfg["dtype"], int(cfg["n"]), int(cfg["m"])
     kwargs = config.common_run_kwargs()  # repeats stays 50: seeds must not move
+    # `overrides` exists for negative controls only (e.g. the no-shift control
+    # sets r=0.0 and gamma_s=gamma_t, removing covariate and noise shift). The
+    # Table 1/2 reproduction nodes carry no overrides.
+    overrides = cfg.get("overrides") or {}
+    kwargs.update(overrides)
 
     t0 = time.time()
     res = mod.run_experiment(dtype=dtype, n=n, m=m, **kwargs)
@@ -64,6 +69,7 @@ def run(cfg, upstream_root):
         "m": m,
         "shard": [lo, hi],
         "repeats_declared": kwargs["repeats"],
+        "overrides": overrides,
         "lambda_grid": kwargs["lbds"],
         "seconds": round(seconds, 1),
         "seconds_per_repeat": round(seconds / max(1, hi - lo), 1),
