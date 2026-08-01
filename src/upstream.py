@@ -16,6 +16,16 @@ DEST = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 
 
 def ensure():
+    # A pre-pinned checkout may be supplied instead of cloning -- used when running
+    # locally, where each run gets its own copy-on-write copy of the artifact
+    # because the stages patch `procedure.py` in place.
+    override = os.environ.get("STCP_UPSTREAM")
+    if override:
+        head = subprocess.check_output(
+            ["git", "-C", override, "rev-parse", "HEAD"], text=True).strip()
+        if head != UPSTREAM_SHA:
+            raise RuntimeError(f"STCP_UPSTREAM is at {head}, expected pin {UPSTREAM_SHA}")
+        return override
     if os.path.isdir(os.path.join(DEST, ".git")):
         head = subprocess.check_output(["git", "-C", DEST, "rev-parse", "HEAD"], text=True).strip()
         if head == UPSTREAM_SHA:
