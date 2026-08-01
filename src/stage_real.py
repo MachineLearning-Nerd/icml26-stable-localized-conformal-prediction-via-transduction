@@ -70,6 +70,32 @@ def _summarise(res_dict, sum_tab, n_reported):
     return out
 
 
+def _apply_source_patches(upstream_root, script, patches):
+    """Exact-string substitutions on an entry script, each one recorded.
+
+    Used only where the shipped artifact and the shipped data disagree: the
+    STAR script reads `Dataset/achievementRatio/STAR_Students.sav`, which the
+    artifact does not contain, while `Dataset/achieve.csv` is a labelled CSV
+    export of exactly that file (11601 x 379, identical string categories, 3754
+    rows with a non-null `hsacttot`, which is what the authors' own result-file
+    name `P_60_1048_2446_10_1_1` implies: 1308 target + 2446 auxiliary).
+    """
+    src_path = os.path.join(upstream_root, "RealAnalysis", script)
+    with open(src_path) as f:
+        src = f.read()
+    applied = []
+    for old, new in patches:
+        count = src.count(old)
+        if count != 1:
+            raise RuntimeError(f"source patch matched {count} times in {script}: {old!r}")
+        src = src.replace(old, new)
+        applied.append({"old": old, "new": new})
+    out_name = f"_patched_{script}"
+    with open(os.path.join(upstream_root, "RealAnalysis", out_name), "w") as f:
+        f.write(src)
+    return out_name, applied
+
+
 def _patch_repeats(upstream_root, script, repeats):
     src_path = os.path.join(upstream_root, "RealAnalysis", script)
     with open(src_path) as f:
@@ -99,6 +125,12 @@ def run(cfg, upstream_root):
     script = cfg["script"]
     argv = [str(a) for a in cfg.get("argv", [])]
     repeats = cfg.get("repeats")
+
+    source_patches = []
+    if cfg.get("source_patches"):
+        script, source_patches = _apply_source_patches(
+            upstream_root, script, [tuple(p) for p in cfg["source_patches"]]
+        )
     entry = _patch_repeats(upstream_root, script, repeats) if repeats else script
 
     cmd = [sys.executable, "-u", os.path.join("RealAnalysis", entry)] + argv
@@ -110,6 +142,7 @@ def run(cfg, upstream_root):
             "kind": "real",
             "dataset": cfg["dataset"],
             "status": "FAILED",
+            "source_patches": source_patches,
             "returncode": proc.returncode,
             "seconds": round(seconds, 1),
             "command": " ".join(cmd),
@@ -161,6 +194,7 @@ def run(cfg, upstream_root):
         "n_reported": n_reported,
         "n_over_m": cfg.get("n_over_m"),
         "repeats": repeats or 50,
+        "source_patches": source_patches,
         "seconds": round(seconds, 1),
         "summary": summary,
         "raw": raw,

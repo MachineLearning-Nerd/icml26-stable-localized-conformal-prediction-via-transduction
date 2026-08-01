@@ -113,7 +113,8 @@
       "anchor": "Theorem 4.7, Section 3.1",
       "statement": "The data-driven lambda selection rule maintains empirical coverage within [1-alpha-alpha_tol, 1-alpha+alpha_tol+(n+1)^{-1}).",
       "assumptions": "exchangeability of S_1..S_{n+1}; nothing else",
-      "predicted_band": {"alpha": 0.1, "alpha_tol": 0.02, "n": 30, "interval": "[0.88, 0.94226)"},
+      "predicted_band": {"alpha": 0.1, "alpha_tol": 0.02, "n": 30, "interval": "[0.88, 0.952258)", "arithmetic": "0.9 - 0.02 = 0.88 ; 0.9 + 0.02 + 1/31 = 0.9522581"},
+      "band_is_not_the_table_annotation_band": "Table 1/2 mark coverage with [1-alpha-0.01, 1-alpha+1/(n+1)] = [0.89, 0.932258]; Theorem 4.7's guarantee band is the wider [0.88, 0.952258).",
       "quantifier_structure": "universally quantified over exchangeable score sequences",
       "machine_checkable_contract": {
         "must_hold": [
@@ -123,8 +124,8 @@
         ],
         "fails_if": "coverage falls outside the band at any assumption-satisfying setting"
       },
-      "vacuity_guard": "The band [0.88, 0.94226) is wide. The check is only non-vacuous if a control that BREAKS exchangeability is shown to land outside it. Negative control: calibrate on a distribution-shifted (non-exchangeable) calibration set and confirm the selected-lambda coverage exits the band.",
-      "negative_control": "Non-exchangeable calibration (target calibration scores drawn from the shifted source distribution) must push ours-sel coverage outside [0.88, 0.94226)."
+      "vacuity_guard": "The band [0.88, 0.952258) is 7.2 points wide, so an in-band observation is weak evidence on its own. The check counts only if a control that BREAKS exchangeability is shown to land outside it.",
+      "negative_control": "Non-exchangeable calibration (target calibration scores drawn from the shifted source distribution) must push ours-sel coverage outside [0.88, 0.952258)."
     }
   ]
 }

@@ -234,7 +234,11 @@ Theorem 4.7: if `S₁,…,S_{n+1}` are exchangeable, then
 score — nothing else. No parametric model, no accuracy condition on
 `F̂_{S|X}`. This makes the theorem finite-sample and distribution-free, and its
 prediction is a **concrete numeric interval**: with `α = 0.1`, `α_tol = 0.02`,
-`n = 30` the band is `[0.88, 0.93226)`.
+`n = 30` the band is `[0.88, 0.9522581)` (`0.9 + 0.02 + 1/31`).
+
+Do not confuse this with the *annotation* band used by the Table 1/2 captions,
+`[1−α−0.01, 1−α+1/(n+1)] = [0.89, 0.932258]`, which only decides where a `−`/`+`
+superscript is printed. Theorem 4.7's guarantee band is the wider one.
 
 **Quantifier structure.** Universally quantified over exchangeable score
 sequences. A finite experiment corroborates but cannot prove it; a violation at
