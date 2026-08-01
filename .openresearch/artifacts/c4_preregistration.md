@@ -106,7 +106,9 @@ printed to a precision that 50 repeats do not determine.** The standard
 deviation of a per-repeat mean, estimated from 50 repeats, simply is not pinned
 down to the three significant figures the table reports.
 
-**2. Marginal coverage does not reproduce for the tuner-based methods.**
+**2. Marginal coverage does not reproduce. On BIO the pattern is confined to the
+tuner-based methods** — see the third addendum below, which corrects this to a
+broader statement once DERMA landed.
 `base`, `SDCP`, `PPI` and `oracle` reproduce to within about 0.006. Every method
 that goes through the tuner is systematically low: BIO/GLCP `ours` reproduces
 0.9086 against a published 0.930 (CI [0.8985, 0.9192]), `ours-sel` 0.9092
@@ -147,6 +149,28 @@ paper-internal result that TISSUE/GLCP is printed at 13.5% against a claimed
 floor of 20% is still reported, and still rests only on the machine-verified
 transcription — but it is reported as a finding and **not** scored, because the
 precondition it was registered behind did not hold.
+
+## Third addendum: DERMA, and a correction to the second
+
+DERMA completed next and disagrees on both metrics: 3 Std cells and 4 marginal
+cells. The per-cell numbers are rendered on the Claim 4 page from the verdict
+rather than repeated here, so they cannot drift out of step with the run.
+
+Two things it changes:
+
+- **It corrects the characterisation above.** On BIO the marginal disagreements
+  were confined to the methods that go through the tuner, and I described the
+  baselines as reproducing. DERMA breaks that: its disagreeing marginal cells
+  include `base` and `SDCP`. The accurate statement is therefore weaker and
+  broader — marginal coverage does not reproduce reliably across methods, with
+  the tuner-only pattern specific to BIO rather than general.
+- **The disagreements do not share a direction.** CRIME reproduces some Std
+  values above the published figure, DERMA reproduces others below it. That is
+  the signature of a table that cannot be reproduced at the precision it is
+  printed to, not of a single bug pushing everything one way.
+
+The `stds_agree` / `marginals_agree` conclusion is unchanged, and is now carried
+by three independent datasets rather than one.
 
 ## Disclosure
 
