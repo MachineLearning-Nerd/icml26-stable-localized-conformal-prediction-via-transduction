@@ -49,7 +49,12 @@ def _arm(name, exchangeable, cfg, upstream_root, shared):
     lbds, temperature, n_grid, epoches = shared["lbds"], k["temperature"], k["n_grid"], k["epoches"]
 
     cov_per_repeat, selected = [], []
+    _t0 = time.time()
     for rep in range(shared["reps"]):
+        # Two arms x reps repeats with no other output makes a slow node
+        # indistinguishable from a hung one.
+        print(f"[control {name}] repeat {rep}/{shared['reps']} start "
+              f"t+{time.time() - _t0:.1f}s", flush=True)
         seed_rep = 1 + rep
         setseed(seed_rep)
         testAgent = generate_agent(testN, d, me_t, gamma_t, mu_t, dtype)

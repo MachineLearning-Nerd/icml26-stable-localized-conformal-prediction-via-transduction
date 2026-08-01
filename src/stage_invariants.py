@@ -93,6 +93,9 @@ def run(cfg, upstream_root):
     t0 = time.time()
     per_repeat = []
     for rep in range(n_reps):
+        # Printed so a long node can be told apart from a hung one; the real
+        # stages emit the same shape of line.
+        print(f"[invariants] repeat {rep}/{n_reps} start t+{time.time() - t0:.1f}s", flush=True)
         seed_rep = 1 + rep
         setseed(seed_rep)
         _test = generate_agent(500, d, me_t, gamma_t, mu_t, dtype)
