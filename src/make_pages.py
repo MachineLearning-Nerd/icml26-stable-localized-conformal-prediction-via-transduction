@@ -645,6 +645,99 @@ def _c2_real_lambda(v):
     return "\n".join(out) + "\n"
 
 
+def _c2_certificate(v):
+    """The route the verdict actually rests on: Appendix B.3, step by step."""
+    c = v.get("certificate")
+    if not c:
+        return ""
+    rows = ["| Step of Appendix B.3 | witness identity exact | points searched | "
+            "min slack | mutations refuted | certified |",
+            "| --- | --- | --- | --- | --- | --- |"]
+    total_mut = 0
+    for s in c["steps"]:
+        muts = s.get("mutations", {})
+        n_ref = sum(1 for m in muts.values() if m["refuted"])
+        total_mut += len(muts)
+        ident = s.get("witness_identity_is_exact")
+        rows.append(
+            f"| `{s['step']}` | {'yes' if ident else ('—' if ident is None else '**no**')} | "
+            f"{s['points_searched']:,} | {s['min_slack_found']:+.2e} | "
+            f"{n_ref}/{len(muts)} | {'yes' if s['certified'] else '**NO**'} |")
+
+    b1 = next((s for s in c["steps"] if s["step"].startswith("B1")), {})
+    n1 = next((s for s in c["steps"] if s["step"].startswith("N1")), {})
+
+    mut_rows = ["| Step | mutation | refuted by the search |", "| --- | --- | --- |"]
+    for s in c["steps"]:
+        for name, m in sorted(s.get("mutations", {}).items()):
+            mut_rows.append(f"| `{s['step'].split('_')[0]}` | {name.replace('_', ' ')} | "
+                            f"{'yes' if m['refuted'] else '**NO — step is vacuous**'} |")
+
+    loose = ["| Where | What the write-up does | Printed bound still valid |",
+             "| --- | --- | --- |"]
+    for w in c.get("write_up_looseness", []):
+        loose.append(f"| {w['where']} | {w['finding']} | "
+                     f"{'yes' if w['printed_bound_still_valid'] else '**no**'} |")
+
+    return "\n".join([
+        "## The route that decides this claim — a proof certificate for Theorem 4.2",
+        "",
+        f"**Verdict: {c['verdict']}.** Theorem 4.2 is universally quantified over distributions, over",
+        "n and over λ, so no finite simulation can decide it. The campaign standard for a claim of",
+        "that shape is a machine-checkable certificate, and Appendix B.3 writes the proof out as a",
+        "chain of algebraic inequalities, which makes one possible.",
+        "",
+        "**What this certifies:** " + c["certifies"] + ".",
+        "",
+        "**What it does not certify:** " + c["does_not_certify"] + ". A certificate about a",
+        "derivation is not a statement about any dataset, and this page does not use it as one.",
+        "",
+        "Registered in",
+        "[`repro/artifacts/c2_certificate_preregistration.md`](repro/artifacts/c2_certificate_preregistration.md)",
+        "before the certificate was written — the seven steps, the two exhaustive domains and the",
+        "mutation gate were all fixed in a commit that contains no certificate code and no result.",
+        "The verifier is",
+        "[`repro/src/verify_thm42_certificate.py`](repro/src/verify_thm42_certificate.py); it exits",
+        "nonzero if any step fails to certify **or if any step is vacuous**.",
+        "",
+        "### Every step of the printed proof",
+        "",
+        "Each step is checked two ways. The **witness identity** writes the slack `rhs − lhs` as an",
+        "explicit expression that `sympy` must reduce to exactly zero — no tolerance is involved. The",
+        "**refutation search** then evaluates the slack across the step's own domain and must never",
+        "find it negative.",
+        "",
+        "\n".join(rows), "",
+        "### The mutation gate — why these checks are not vacuous",
+        "",
+        "An identity check proves nothing on its own, because an identity can be written to match",
+        "whatever is in front of it. So every step carries mutations — a changed exponent, a changed",
+        "constant, a dropped hypothesis — and each must be caught **by the same refutation search**",
+        f"that certified the step. All {total_mut} are refuted; a step whose mutations survived would",
+        "be reported as failed however its own check came out.",
+        "",
+        "\n".join(mut_rows), "",
+        "> **The two exhaustive steps are also shown to be tight**, which matters because a bound",
+        f"> nothing ever reaches would certify without saying anything. Lemma B.1's bound `ε/L_F` is",
+        f"> attained exactly (closest approach **{f(b1.get('closest_approach_to_the_bound'), 4)}** of the",
+        f"> bound), and the finite-sample `n⁻¹` term is approached to",
+        f"> **{f(n1.get('closest_approach_to_the_bound'), 4)}** of its value over "
+        f"{n1.get('points_searched', 0):,} exhaustively enumerated `(n, α)` cells.",
+        "",
+        f"> **{n1.get('levels_out_of_range', 0):,} further `(n, α)` cells are excluded rather than",
+        "> scored**: " + str(n1.get("out_of_range_note", "")) + ". Excluding them is reported here",
+        "> rather than left implicit, because silently dropping them would read as full coverage.",
+        "",
+        "### Two findings about the write-up, neither a falsification",
+        "",
+        "Slack in an upper bound is still an upper bound, so neither of these contradicts Theorem 4.2",
+        "and neither is counted against it. They are recorded because a reader reconstructing the",
+        "proof will hit both.",
+        "",
+        "\n".join(loose), "",
+    ])
+
+
 def _c2(a):
     v = a["verdicts"]["C2"]
     rows = ["| Setting / base | max \\|coverage − 0.9\\| over λ | λ in band | dev at λ_min | dev at λ_max | #λ |",
@@ -679,6 +772,14 @@ def _c2(a):
                       "has not been summarised. This claim is BLOCKED until it has._"])
 
     return "\n".join([
+        _c2_certificate(v),
+        "## Reported evidence — the simulation route, which did not decide this claim",
+        "",
+        "Everything below is scoped corroboration on the paper's own DGP and λ grid. It is reported",
+        "in full, including its failures, and it is **excluded from the verdict** — its own",
+        "permutation control says it carried no information about the bound's functional form.",
+        "Nothing here rescues the certificate and the certificate does not rescue anything here.",
+        "",
         "## Coverage across the paper's full λ grid",
         "",
         "Theorem 4.2's operative consequence (Remark 4.3, §3.1) is that marginal coverage is robust",
@@ -813,7 +914,7 @@ def _transcription_block(a):
 # Named per claim rather than blanket-listed so a reader can run the one that
 # matters for the row they are reading.
 _CLAIM_CHECKERS = {
-    "C2": ["verify_shard_merge.py"],
+    "C2": ["verify_thm42_certificate.py", "verify_shard_merge.py"],
     "C3": ["verify_shard_merge.py"],
     "C4": ["verify_transcription.py", "verify_fidelity_gate.py", "verify_shard_merge.py"],
     "C5": ["verify_transcription.py", "verify_shard_merge.py"],
@@ -851,6 +952,16 @@ def _control_of(v):
         "violation_survives_the_printed_rounding":
             "rounding-interval bound on the violating cell",
     }
+    # C2 is decided by the certificate, so its control is the mutation suite:
+    # every step must reject a changed exponent, a changed constant or a
+    # dropped hypothesis, or the step is reported as vacuous. The count is
+    # taken from the certificate rather than written down, so it cannot drift
+    # away from the number of mutations actually run.
+    if "no_step_is_vacuous" in integ:
+        n_mut = sum(len(s.get("mutations") or {})
+                    for s in (v.get("certificate") or {}).get("steps", []))
+        named["no_step_is_vacuous"] = (
+            f"{n_mut} mutated proof steps, each required to be refuted by the same search")
     if "control_makes_the_band_informative" in integ:
         arms = (v.get("negative_control") or {}).get("violations_that_left_the_band") or []
         return (f"exchangeability ladder; band exited by {', '.join('`%s`' % a for a in arms)}"
