@@ -1,11 +1,15 @@
 {
   "stage": "simshard",
-  "note": "Table 2 logabs-n30-m100 repeats [45,50); 5-repeat shard for the 1h cap.",
+  "note": "Claim 5 negative control, no shift, repeats [0,5).",
   "dtype": "logabs",
   "n": 30,
-  "m": 100,
+  "m": 500,
   "shard": [
-    45,
-    50
-  ]
+    0,
+    5
+  ],
+  "overrides": {
+    "r": 0.0,
+    "gamma_s": 1.0
+  }
 }
