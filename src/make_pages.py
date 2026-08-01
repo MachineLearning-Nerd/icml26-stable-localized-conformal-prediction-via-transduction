@@ -1609,7 +1609,12 @@ def _c5(a):
         "With r = 0 and γ_s = γ_t there is no covariate or noise shift. This tests whether the gain",
         "is *shift-driven*, which is a weaker proposition than the paper asserts: by the rates above",
         "it can fail while the method works exactly as claimed. It is published either way.",
-        "", "\n".join(ctrl_rows) if ctrl_rows else "_control pending_",
+        "", "\n".join(ctrl_rows) if ctrl_rows else (
+            "**This arm has not produced a number.** Its nodes were still queued when this "
+            "revision was built, and it is listed here rather than dropped so that its absence "
+            "is visible. It does not gate Claim 5 — the gating control is `m = n` above, which "
+            "did run — so the claim's verdict does not depend on it. Nothing here is scored "
+            "either way from a control that was not measured."),
         "",
         (v.get("control_choice") or ""),
         "",
