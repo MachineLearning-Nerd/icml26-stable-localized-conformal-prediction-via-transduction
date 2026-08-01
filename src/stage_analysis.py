@@ -131,6 +131,23 @@ def _boot_pct_sim(parts, model_idx, lam_idx, n_boot=BOOT):
 # --------------------------------------------------------------------- claims
 
 
+def _adjudicate(claim_checks, integrity):
+    """Separate "the evidence is sound" from "the claim is true".
+
+    A FALSIFIED verdict earns full credit only when the experiment that produced
+    it was itself valid. Folding both kinds of condition into one dict makes a
+    broken control indistinguishable from a false claim -- and since FALSIFIED
+    scores the same as VERIFIED, a failed negative control would silently be
+    rewarded. Integrity conditions therefore gate the verdict: if any of them
+    fails the claim is BLOCKED, never FALSIFIED, and the verifier exits nonzero.
+    """
+    broken = [k for k, v in integrity.items() if not v]
+    if broken:
+        return {"verdict": "BLOCKED", "blocked_by": broken}
+    return {"verdict": "VERIFIED" if all(claim_checks.values()) else "FALSIFIED",
+            "blocked_by": []}
+
+
 def claim1(results):
     """Equation 7's data flow and objective, measured on the authors' own code.
 
@@ -146,6 +163,12 @@ def claim1(results):
     obj = inv["objective_identity"]
     path = inv["regularisation_path_unenforced"]
     interv = inv["unlabeled_target_intervention"]
+    integrity = {
+        # If the transduction cannot be shown to do anything, nothing downstream
+        # of it is discriminating evidence about Equation 7.
+        "transduction_intervention_beats_its_matched_null":
+            bool(interv["treatment_exceeds_null_in_majority"]),
+    }
     checks = {
         "cdf_estimator_sees_source_only":
             inv["provenance"]["F_hat_S_given_X_trained_on"]["uses_target_labels"] is False,
@@ -157,12 +180,11 @@ def claim1(results):
         # sample), not against an arbitrary threshold. Requiring every repeat
         # would make a single noisy draw decisive on 5 repeats, so a majority is
         # the bar and the per-repeat outcomes are published.
-        "unlabeled_target_distribution_moves_the_fit_more_than_resampling":
-            bool(interv["treatment_exceeds_null_in_majority"]),
     }
     return {
-        "verdict": "VERIFIED" if all(checks.values()) else "FALSIFIED",
+        **_adjudicate(checks, integrity),
         "checks": checks,
+        "integrity": integrity,
         "evidence": {
             "provenance": inv["provenance"],
             "objective_identity": obj,
@@ -284,19 +306,25 @@ def claim2(results):
     env_ok = [e["envelope_holds_on_held_out"] for e in envelopes.values()]
     informative = [e["permuted_fraction_as_good"] <= 0.05 for e in envelopes.values()]
 
-    checks = {
-        "coverage_robust_over_most_of_the_lambda_grid": bool(
-            frac_in and np.mean(frac_in) >= 0.8
-        ),
-        "envelope_holds_on_held_out_lambda": bool(env_ok and all(env_ok)),
+    integrity = {
+        # A three-parameter envelope with a min() can absorb many curves, and a
+        # control that never leaves the band cannot discriminate. Both are
+        # preconditions for the envelope result to mean anything.
         "envelope_shape_beats_permutation_control": bool(
             informative and np.mean(informative) >= 0.5
         ),
         "negative_control_DP_leaves_band": len(dp_out) >= max(1, len(dp) // 2),
     }
+    checks = {
+        "coverage_robust_over_most_of_the_lambda_grid": bool(
+            frac_in and np.mean(frac_in) >= 0.8
+        ),
+        "envelope_holds_on_held_out_lambda": bool(env_ok and all(env_ok)),
+    }
     return {
-        "verdict": "VERIFIED" if all(checks.values()) else "FALSIFIED",
+        **_adjudicate(checks, integrity),
         "checks": checks,
+        "integrity": integrity,
         "worst_deviation_over_all_lambda": worst,
         "mean_fraction_of_lambda_in_band": float(np.mean(frac_in)) if frac_in else None,
         "per_setting": per_setting,
@@ -390,17 +418,22 @@ def claim3(results):
         for model in MODELS
     } if len(ms) >= 2 else {}
 
+    integrity = {
+        "all_three_calibration_sizes_available": len(ns) >= 3,
+        "slope_interval_is_bootstrapped_not_assumed": bool(boot),
+        "m_sweep_available": len(m_trend) >= 2,
+    }
     checks = {
         "base_variance_slope_consistent_with_minus_one": bool(ci and ci[0] <= -1.0 <= ci[1]),
-        "slope_interval_is_bootstrapped_not_assumed": bool(boot),
         "stcp_std_decreases_with_lambda_in_valid_region": (
             sum(v["decreases"] for v in lam_mono.values()) >= 0.75 * len(lam_mono)
         ),
         "stcp_std_decreases_with_m_at_fixed_n": bool(m_decreasing and all(m_decreasing.values())),
     }
     return {
-        "verdict": "VERIFIED" if all(checks.values()) else "FALSIFIED",
+        **_adjudicate(checks, integrity),
         "checks": checks,
+        "integrity": integrity,
         "base_variance_vs_n": {
             "n": ns, "variance": base_var, "loglog_slope": slope, "slope_ci95": ci,
             "bootstrap": boot,
@@ -542,9 +575,13 @@ def claim4(results):
     reproduces = ran_all and not disagree
     bands_hold = not viol["reproduced_glcp"] and not viol["reproduced_cqr"]
 
-    checks = {
+    integrity = {
+        # A reproduction that does not match the printed table cannot be used to
+        # convict the paper of anything, however its own numbers land.
         "all_five_datasets_ran": ran_all,
         "reproduces_published_table_cell_by_cell": bool(reproduces),
+    }
+    checks = {
         "marginal_coverage_near_nominal": all(
             v["models"][m]["ours_marginal_in_band"]
             for v in per_dataset.values() if v.get("models") for m in MODELS
@@ -556,19 +593,10 @@ def claim4(results):
         "claimed_bands_cover_every_reproduced_cell": bands_hold,
     }
 
-    # A claim can be settled either way and still earn full credit, but only if
-    # the reproduction itself is sound. Without that, the verdict is BLOCKED
-    # rather than a falsification we cannot support.
-    if not reproduces:
-        verdict = "BLOCKED"
-    elif all(checks.values()):
-        verdict = "VERIFIED"
-    else:
-        verdict = "FALSIFIED"
-
     return {
-        "verdict": verdict,
+        **_adjudicate(checks, integrity),
         "checks": checks,
+        "integrity": integrity,
         "reproduced_glcp_pct_range": glcp_rng,
         "reproduced_cqr_pct_range": cqr_rng,
         "claimed_glcp_band": list(P.CLAIM4_GLCP_BAND),
@@ -688,14 +716,19 @@ def claim5(results):
             control[m]["pct_no_shift"] < control[m]["pct_with_shift"] for m in MODELS
         )
 
-    checks = {
-        "n30_glcp_matches_31_2_within_ci": target_hit.get("GLCP", False),
-        "n30_cqr_matches_16_3_within_ci": target_hit.get("CQR", False),
+    integrity = {
         # A control that cannot fail is not a control. Removing the covariate and
-        # noise shift removes the reason StCP helps, so the gain must shrink.
+        # noise shift removes the reason StCP helps, so the gain must shrink --
+        # if it does not, the measured gain is not attributable to the method and
+        # neither verdict would be supportable.
         "no_shift_control_reduces_the_gain": bool(
             control and control.get("gain_shrinks_without_shift")
         ),
+        "bootstrap_available_at_n30": bool(boots),
+    }
+    checks = {
+        "n30_glcp_matches_31_2_within_ci": target_hit.get("GLCP", False),
+        "n30_cqr_matches_16_3_within_ci": target_hit.get("CQR", False),
         # The published GLCP row peaks at n=30, which is a fact about the table and
         # carries no sampling error. The reproduction can only *contradict* it, so
         # an ordering the repeats cannot resolve is not counted as a failure --
@@ -706,8 +739,9 @@ def claim5(results):
         ),
     }
     return {
-        "verdict": "VERIFIED" if all(checks.values()) else "FALSIFIED",
+        **_adjudicate(checks, integrity),
         "checks": checks,
+        "integrity": integrity,
         "by_n": by_n,
         "bootstrap_at_n30": boots,
         "largest_gain_at_n30": largest_at_30,
@@ -778,14 +812,12 @@ def claim6(results):
     informative = bool(ctrl and ctrl["control_is_informative"])
     excluded = [k for k, v in obs.items() if v["excluded_by_ci"]]
     outside_pt = [k for k, v in obs.items() if not v["in_band"]]
-    checks = {
-        "no_setting_excluded_by_its_confidence_interval": not excluded,
-        "control_makes_the_band_informative": informative,
-    }
-    verdict = "VERIFIED" if all(checks.values()) else ("BLOCKED" if not informative else "FALSIFIED")
+    integrity = {"control_makes_the_band_informative": informative}
+    checks = {"no_setting_excluded_by_its_confidence_interval": not excluded}
     return {
-        "verdict": verdict,
+        **_adjudicate(checks, integrity),
         "checks": checks,
+        "integrity": integrity,
         "band": [lo, hi],
         "observed": obs,
         "n_settings": len(obs),
@@ -871,9 +903,15 @@ def run(cfg, upstream_root):
         "C1": claim1(res), "C2": claim2(res), "C3": claim3(res),
         "C4": claim4(res), "C5": claim5(res), "C6": claim6(res),
     }
-    full = {v["verdict"] in ("VERIFIED", "FALSIFIED") for v in verdicts.values()}
-    points = sum(2 if v["verdict"] in ("VERIFIED", "FALSIFIED") else 0 for v in verdicts.values())
-    failed = [k for k, v in verdicts.items() if v["verdict"] not in ("VERIFIED", "FALSIFIED")]
+    # A claim scores only when it was settled on sound evidence. BLOCKED means an
+    # integrity condition failed -- a missing sweep, a control that did not bite,
+    # a reproduction that did not match the table -- and must never be scored as
+    # a falsification, since the two carry identical credit.
+    settled = {k: v for k, v in verdicts.items()
+               if v["verdict"] in ("VERIFIED", "FALSIFIED")}
+    points = 2 * len(settled)
+    failed = [k for k, v in verdicts.items() if k not in settled]
+    blocked_by = {k: v.get("blocked_by", []) for k, v in verdicts.items() if k not in settled}
 
     out = {
         "kind": "analysis",
@@ -883,6 +921,12 @@ def run(cfg, upstream_root):
         "verdicts": verdicts,
         "self_scored_points": points,
         "not_full_credit": failed,
+        "blocked_by": blocked_by,
+        "scoring_note": (
+            "Points are awarded for VERIFIED or FALSIFIED only. BLOCKED marks a claim whose "
+            "evidence did not meet its integrity preconditions (controls, sweeps, reproduction "
+            "fidelity); it is deliberately not scored, because FALSIFIED and VERIFIED carry equal "
+            "credit and a failed control would otherwise be rewarded."),
         "exit_code": 0 if not failed else 1,
     }
     with open(os.path.join(root, "results", "analysis.json"), "w") as f:

@@ -88,7 +88,20 @@ def page_claim(slug, title, cid, analysis, env, extra=""):
         " `https://ar5iv.labs.arxiv.org/html/2605.01452`, SHA-256"
         " `d07bc37a6a81e0c74aef488fd566dfe5ebf4e0b94ad526c3449334000c2741a2`.",
         "",
-        "## Checks",
+        "## Evidence integrity — preconditions for any verdict",
+        "",
+        "These are not propositions about the claim; they are conditions under which a verdict is",
+        "meaningful at all — controls that must bite, sweeps that must exist, a reproduction that",
+        "must match the published table. If any fails the claim is reported **BLOCKED** and scores",
+        "nothing. It is deliberately not reported as FALSIFIED: a falsification carries the same",
+        "credit as a verification, so a failed control would otherwise be rewarded.",
+        "",
+        checks_table(v.get("integrity") or {}) if v.get("integrity") else "_none declared_",
+        "",
+        (f"**Blocked by:** {', '.join('`%s`' % b for b in v['blocked_by'])}."
+         if v.get("blocked_by") else ""),
+        "",
+        "## Checks on the claim itself",
         "",
         checks_table(v["checks"]) if "checks" in v else "_no checks recorded_",
         "",
@@ -107,7 +120,7 @@ def page_claim(slug, title, cid, analysis, env, extra=""):
         "- Raw results: [`repro/results/analysis.json`](repro/results/analysis.json)",
         "- Claim contracts: [`repro/artifacts/claim_contract.json`](repro/artifacts/claim_contract.json)",
         "- Source audit: [`repro/artifacts/source_audit.md`](repro/artifacts/source_audit.md)",
-        "- Verifier: [`repro/src/stage_analysis.py`](repro/src/stage_analysis.py) — exits nonzero when any claim is below full credit",
+        "- Verifier: [`repro/src/stage_analysis.py`](repro/src/stage_analysis.py) — exits nonzero when any claim fails to reach a scored verdict",
         "",
     ]
     return "\n".join(body)
@@ -570,10 +583,10 @@ def _c4(a):
             "| --- | --- | --- | --- |",
             f"| GLCP | {v['claimed_glcp_band'][0]:.0f}–{v['claimed_glcp_band'][1]:.0f}% | "
             f"{f(g[0], 1) if g else '—'}–{f(g[1], 1) if g else '—'}% | "
-            f"{f(v['claimed_glcp_band_covers_all_reproduced_cells'])} |",
+            f"{f(not v['band_violations']['reproduced_glcp'])} |",
             f"| CQR | {v['claimed_cqr_band'][0]:.0f}–{v['claimed_cqr_band'][1]:.0f}% | "
             f"{f(c[0], 1) if c else '—'}–{f(c[1], 1) if c else '—'}% | "
-            f"{f(v['claimed_cqr_band_covers_all_reproduced_cells'])} |", "",
+            f"{f(not v['band_violations']['reproduced_cqr'])} |", "",
             "", "### Where the claimed bands break", "",
             f"Cells are counted as violating only when they sit more than "
             f"{v['band_rounding_slack_pct']} of a point outside the band — the claim states integer",
@@ -587,10 +600,14 @@ def _c4(a):
             "",
             v["paper_internal_finding"],
             "",
-            "Note, independently of this reproduction: the **paper's own** published GLCP `ours`",
-            f"values span {v['published_glcp_pct_range'][0]:.1f}–{v['published_glcp_pct_range'][1]:.1f}%,",
-            "because TISSUE is 13.5%. The claim's stated lower edge of 20% therefore does not cover",
-            "TISSUE even in the paper's own table. This is reported rather than smoothed over."]
+            "",
+            "The paper's own published `ours` percentages, for reference:",
+            "",
+            "| Dataset | GLCP (paper) | CQR (paper) |", "| --- | --- | --- |"]
+    for ds in v["published_glcp_pct_by_dataset"]:
+        out.append(f"| {ds} | {f(v['published_glcp_pct_by_dataset'][ds], 1)} | "
+                   f"{f(v['published_cqr_pct_by_dataset'][ds], 1)} |")
+    out += [""]
     return "\n".join(out)
 
 

@@ -137,3 +137,31 @@ trivially:
 C6's control is the one that decides whether the claim is scored at all: the
 Theorem 4.7 band is 7.2 points wide, so without a control that exits it, an
 in-band observation would be weak evidence and the claim stays BLOCKED.
+
+## Scoring semantics: integrity conditions gate the verdict
+
+VERIFIED and FALSIFIED carry identical credit, so folding "is the evidence
+sound?" and "is the claim true?" into one list of checks makes a broken control
+indistinguishable from a false claim — and rewards it. Each claim therefore
+declares two dicts:
+
+- `integrity` — preconditions for any verdict to be meaningful: a negative
+  control that actually leaves the band, a permutation control the real fit
+  beats, a sweep that exists, a reproduction that matches the published table.
+- `checks` — propositions about the claim itself.
+
+If any integrity condition fails the claim is **BLOCKED**, scores nothing, and
+the verifier exits nonzero. Only when all of them hold does `checks` decide
+VERIFIED versus FALSIFIED. A dry run on synthetic inputs demonstrated why this
+matters: with the old single-dict logic a tree in which two negative controls had
+failed still reported `exit_code 0` and a self-score of 12/12.
+
+## Pipeline validation on synthetic inputs
+
+`.openresearch/artifacts/plumbing_fixture.py` writes a complete result tree of
+the right *shape* with meaningless numbers, so the whole chain — shard
+reduction, real-shard merge, all six claim functions, page generation, the
+protected-tree subset check and the secret scan — is exercised before any
+compute is spent. It has already caught: a `sum_tab` import that runs a script
+tail, the authors' non-default `tol=0.01`, the classification datasets' scalar
+local coverage, an integer-key JSON round trip, and the scoring bug above.
