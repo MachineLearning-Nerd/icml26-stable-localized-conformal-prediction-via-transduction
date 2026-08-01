@@ -50,6 +50,35 @@ def _marks(mar, n_reported, tol=0.01):
     return out
 
 
+def load_sum_tab(upstream_root):
+    """Import `RealAnalysis/sum_tab.py`'s functions without running its script tail.
+
+    The file defines the summarisation helpers and then, at module level, opens
+    five result pickles by relative path and writes `sum_tab.txt`. A plain import
+    therefore fails outside the authors' directory layout. Only the definitions
+    are executed here -- the source is truncated at the first top-level statement
+    that is neither an import nor a def, so the logic used is byte-identical to
+    the authors' and nothing is paraphrased.
+    """
+    import ast
+    import types
+
+    path = os.path.join(upstream_root, "RealAnalysis", "sum_tab.py")
+    with open(path) as fh:
+        src = fh.read()
+    tree = ast.parse(src)
+    keep = [n for n in tree.body
+            if isinstance(n, (ast.Import, ast.ImportFrom, ast.FunctionDef, ast.ClassDef))]
+    dropped = len(tree.body) - len(keep)
+    module = types.ModuleType("stcp_sum_tab")
+    module.__file__ = path
+    exec(compile(ast.Module(body=keep, type_ignores=[]), path, "exec"), module.__dict__)
+    if not hasattr(module, "sum_compare_result"):
+        raise RuntimeError("sum_tab.py did not define sum_compare_result")
+    module._dropped_toplevel_statements = dropped
+    return module
+
+
 def _is_cls(res_dict, key):
     """Classification datasets store a scalar local coverage, regression an array.
 
@@ -65,7 +94,11 @@ def _summarise(res_dict, sum_tab, n_reported):
     out = {}
     for model, key in MODEL_KEYS.items():
         cls = _is_cls(res_dict, key)
-        rows = sum_tab.sum_compare_result(res_dict, key, tol=0.02, n=n_reported, cls=cls)
+        # tol=0.01 and n=30 are the authors' own call arguments for Table 1
+        # (`RealAnalysis/sum_tab.py:105`), not the function's defaults; tol sets
+        # both the baseline-eligibility window and the lambda mask, so the
+        # published table is not reproduced at tol=0.02.
+        rows = sum_tab.sum_compare_result(res_dict, key, 0.01, n_reported, cls)
         marks = _marks(rows[:, 0], n_reported)
         eligible = [i for i in (0, 1, 2) if not marks[i]] or [0, 1, 2]
         a_ref = float(np.min(rows[eligible, 2]))
@@ -199,7 +232,7 @@ def run(cfg, upstream_root):
 
     import pickle
 
-    import sum_tab
+    sum_tab = load_sum_tab(upstream_root)
 
     with open(pkl, "rb") as f:
         res_dict = pickle.load(f)

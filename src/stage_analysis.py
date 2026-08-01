@@ -507,7 +507,6 @@ def _load_real(real_dir, upstream_root):
     """
     import stage_real
 
-    sys.path.insert(0, os.path.join(upstream_root, "RealAnalysis"))
     groups, provenance = {}, {}
     for path in sorted(glob.glob(os.path.join(real_dir, "*.json"))):
         name = os.path.basename(path)[:-5]
@@ -523,8 +522,7 @@ def _load_real(real_dir, upstream_root):
             continue
         shards = [d for _, d in items]
         merged, meta = real_reduce.merge(shards)
-        import sum_tab
-
+        sum_tab = stage_real.load_sum_tab(upstream_root)
         n_reported = int(shards[0]["n_reported"])
         out[base] = {
             "summary": stage_real._summarise(merged, sum_tab, n_reported),
