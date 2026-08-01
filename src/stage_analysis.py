@@ -668,6 +668,13 @@ def claim3(results):
         for model in MODELS
     } if len(ms) >= 2 else {}
 
+    # "The CI contains -1" is a one-sided contract: a wide enough interval
+    # contains -1 without measuring anything, and would pass for data that shows
+    # no decay at all. The interval must therefore also EXCLUDE the null of no
+    # decay before its containing -1 counts as evidence. Registered here, before
+    # the n=100 and n=500 settings exist, so the bound is not chosen to fit them.
+    slope_informative = bool(ci and ci[1] < 0.0)
+    lam_points = [v["n_valid_lambda"] for v in lam_mono.values()]
     integrity = {
         # The theorem contrasts a base rate in n against an StCP rate in m and
         # lambda. The n-sweep is what makes the base rate measurable at all, so it
@@ -675,6 +682,11 @@ def claim3(results):
         # when the sweep exists, rather than blocking the claim when it does not.
         "all_three_calibration_sizes_available": len(ns) >= 3,
         "slope_interval_is_bootstrapped_not_assumed": bool(boot),
+        "slope_interval_excludes_no_decay": slope_informative,
+        # A monotonicity vote over one or two in-band lambdas is noise, not a
+        # trend; each curve must have enough valid points to have a direction.
+        "lambda_curves_have_enough_valid_points": bool(
+            lam_points and min(lam_points) >= 3),
     }
     checks = {
         "base_variance_slope_consistent_with_minus_one": bool(ci and ci[0] <= -1.0 <= ci[1]),
@@ -694,6 +706,13 @@ def claim3(results):
             "n": ns, "variance": base_var, "loglog_slope": slope, "slope_ci95": ci,
             "bootstrap": boot,
             "ci_method": "resampling the 50 repeats at each n independently, refitting the slope",
+        },
+        "slope_informativeness": {
+            "ci95": ci,
+            "excludes_no_decay": slope_informative,
+            "note": ("A bootstrap interval that contains -1 is only evidence for an n^-1 "
+                     "rate if it also rules out no decay at all; otherwise the check passes "
+                     "on any sufficiently noisy sweep. Both conditions are reported."),
         },
         "std_vs_lambda": lam_mono,
         "ours_std_vs_m_at_n30": {
