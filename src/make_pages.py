@@ -623,15 +623,24 @@ def _c2(a):
     for k, s in sorted(v["negative_control_DP"]["per_setting"].items()):
         dp.append(f"| {k} | {f(s['marginal'])} | {f(s['in_band'])} |")
 
+    # No setting has finished yet, so there is no grid to summarise. Reporting
+    # that is better than crashing the whole build, and far better than printing
+    # a figure derived from nothing.
+    frac = v.get("mean_fraction_of_lambda_in_band")
+    coverage_line = ([f"Worst deviation anywhere: **{f(v['worst_deviation_over_all_lambda'], 4)}**; "
+                      f"on average", f"**{frac * 100:.0f}%** of the λ grid lands inside the",
+                      "table-annotation band."]
+                     if frac is not None else
+                     ["_No simulation setting has completed its full 50 repeats yet, so the λ grid "
+                      "has not been summarised. This claim is BLOCKED until it has._"])
+
     return "\n".join([
         "## Coverage across the paper's full λ grid",
         "",
         "Theorem 4.2's operative consequence (Remark 4.3, §3.1) is that marginal coverage is robust",
         "to λ. Every λ on the authors' own grid is evaluated, on the paper's own settings.",
         "",
-        f"Worst deviation anywhere: **{f(v['worst_deviation_over_all_lambda'], 4)}**; on average",
-        f"**{v['mean_fraction_of_lambda_in_band'] * 100:.0f}%** of the λ grid lands inside the",
-        "table-annotation band.",
+        *coverage_line,
         "",
         "\n".join(rows), "",
         "> **Why this is not thresholded at 100%.** Theorem 4.2 bounds the coverage error by an",

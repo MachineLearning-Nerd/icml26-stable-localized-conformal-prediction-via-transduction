@@ -7,6 +7,7 @@ candidate's, so no previously judged evidence can be dropped.
 import hashlib
 import json
 import os
+import re
 import sys
 
 from huggingface_hub import HfApi, get_token, snapshot_download
@@ -61,8 +62,27 @@ def subset_check(staging_dir):
 
 
 def scan_secrets(staging_dir):
+    """Flag files that contain a secret VALUE, not files that mention one.
+
+    Bare substrings ("hf_", "api_key") match any prose or code that discusses
+    credentials -- including this gate's own archived copy, whose needle list
+    tripped all five patterns at once. A gate that cries wolf on its own source
+    gets waived, and a waived gate protects nothing.
+
+    Matching the shape of a real credential instead is both quieter and
+    stricter: `hf_` followed by token-length entropy, an assignment with a
+    value on the right-hand side, an actual Authorization header, a real PEM
+    block. `verify_secret_scan.py` plants synthetic credentials and requires
+    each pattern to catch its own.
+    """
     bad = []
-    needles = ("hf_", "HF_TOKEN", "api_key", "Authorization:", "-----BEGIN")
+    needles = (
+        r"hf_[A-Za-z0-9]{20,}",
+        r"HF_TOKEN\s*[=:]\s*['\"]?[A-Za-z0-9_\-]{8,}",
+        r"api[_-]?key\s*[=:]\s*['\"]?[A-Za-z0-9_\-]{8,}",
+        r"Authorization\s*:\s*(?:Bearer|Basic|token)\s+\S{8,}",
+        r"-----BEGIN(?: [A-Z]+)* PRIVATE KEY-----",
+    )
     for base, _, files in os.walk(staging_dir):
         if ".git" in base or ".cache" in base:
             continue
@@ -75,7 +95,7 @@ def scan_secrets(staging_dir):
             except OSError:
                 continue
             for nd in needles:
-                if nd in txt:
+                if re.search(nd, txt):
                     bad.append((os.path.relpath(p, staging_dir), nd))
     return bad
 
