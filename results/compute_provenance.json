@@ -21,5 +21,11 @@
   "host": "Linux-x86_64 (cgroup quota 8)",
   "seconds": null,
   "seconds_note": "not recorded in the harvested payload"
+ },
+ "check/invariants": {
+  "where": "local",
+  "seconds": 1172.3,
+  "cores": 2,
+  "host": "darwin-arm64"
  }
 }
