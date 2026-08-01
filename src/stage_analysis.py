@@ -41,7 +41,11 @@ def _load_json_opt(path, default=None):
 # ---------------------------------------------------------------- simulation
 
 
-def _assert_tiles(spans, where):
+class Truncated(ValueError):
+    """A shard set is contiguous and non-overlapping but stops short of the full run."""
+
+
+def _assert_tiles(spans, where, expect=None):
     """Repeat ranges must tile without overlap, or statistics are double-counted.
 
     Shard files of different widths can coexist in one directory -- a 10-repeat
@@ -56,6 +60,14 @@ def _assert_tiles(spans, where):
         seen |= set(range(lo, hi))
     if seen and seen != set(range(min(seen), max(seen) + 1)):
         raise ValueError(f"{where}: gap in repeat coverage: {sorted(spans)}")
+    if seen and expect is not None and len(seen) != expect:
+        # Contiguity is not completeness. A dataset whose last shards have not
+        # landed yet tiles [0, k) perfectly and passes every check above, then
+        # gets summarised as though it were the full run and compared against a
+        # published 50-repeat column -- manufacturing disagreements out of a
+        # partial job. Truncation has to be its own error.
+        raise Truncated(f"{where}: {len(seen)} of {expect} repeats present "
+                        f"({sorted(spans)})")
     return len(seen)
 
 
@@ -1401,7 +1413,15 @@ def _load_real(real_dir, upstream_root):
             provenance[base] = {"mode": "single_job", "repeats": whole[0].get("repeats", 50)}
             continue
         shards = [d for _, d in items]
-        _assert_tiles([tuple(x["shard"]) for x in shards], base)
+        try:
+            _assert_tiles([tuple(x["shard"]) for x in shards], base, expect=P.REAL_REPEATS)
+        except Truncated as exc:
+            # Still running. Recorded so the page can say which datasets are
+            # outstanding, and left out of `out` so nothing downstream can treat
+            # a part-finished dataset as a reproduced Table 1 column.
+            provenance[base] = {"mode": "incomplete", "detail": str(exc),
+                                "shards": sorted(tuple(x["shard"]) for x in shards)}
+            continue
         merged, meta = real_reduce.merge(shards)
         sum_tab = stage_real.load_sum_tab(upstream_root)
         n_reported = int(shards[0]["n_reported"])

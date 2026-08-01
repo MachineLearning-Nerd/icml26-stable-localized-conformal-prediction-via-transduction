@@ -811,59 +811,92 @@ def _dgp_line(a):
 
 
 def _c4_findings(v):
-    """What the reproduction established, stated up front.
+    """The verdict and the two independent things this claim page establishes.
 
-    BLOCKED means "no verdict on the claim is supportable", not "nothing was
-    learned". Everything here is rendered from the verdict so it cannot drift
-    away from the tables further down the page.
+    The claim is a conjunction over two base methods, and it fails on one half
+    while holding on the other -- so the summary has to say which, not just
+    "false". Everything is rendered from the verdict, including the verdict word
+    itself, so the prose cannot drift away from the tables further down.
     """
     ran = [ds for ds, e in v["per_dataset"].items() if e.get("models")]
     tf = v.get("table_fidelity") or {}
-    pub_bad = dict(v["band_violations"]["published_glcp"])
-    pub_bad.update(v["band_violations"]["published_cqr"])
-    g, c = v["reproduced_glcp_pct_range"], v["reproduced_cqr_pct_range"]
-    rep_bad = dict(v["band_violations"]["reproduced_glcp"])
-    rep_bad.update(v["band_violations"]["reproduced_cqr"])
+    route = v.get("printed_table_route") or {}
+    repro = v.get("reproduction_of_the_printed_table") or {}
+    glcp_bad = v["band_violations"]["published_glcp"]
+    cqr_bad = v["band_violations"]["published_cqr"]
+    glo, ghi = v["claimed_glcp_band"]
+    clo, chi = v["claimed_cqr_band"]
     n_std = len(tf.get("std_disagreements") or {})
     n_mar = len(tf.get("marginal_disagreements") or {})
 
-    out = ["## What this reproduction establishes", "",
-           "The verdict above is BLOCKED, which means no verdict *on the claim* is supportable "
-           "from this evidence. It does not mean nothing was measured. Four things were:", ""]
-    out.append(f"1. **The five real datasets were run end to end** at the authors' committed "
-               f"defaults: {', '.join('`%s`' % d for d in sorted(ran))}. "
-               f"{'All five' if len(ran) == 5 else f'{len(ran)} of 5'} produced a full 50-repeat "
-               "Table 1 column through the authors' own `procedure.py` and `sum_tab.py`.")
-    if pub_bad:
-        cells = ", ".join(f"{k} at {f(x, 1)}%" for k, x in sorted(pub_bad.items()))
-        out.append(f"2. **The paper's own printed Table 1 falls outside the band the claim states** "
-                   f"({cells}). This is exact arithmetic on cells verified character by character "
-                   "against the archived paper text by "
-                   "[`verify_transcription.py`](repro/src/verify_transcription.py), and needs no "
-                   "measurement from this reproduction at all.")
-    else:
-        out.append("2. The paper's own printed Table 1 stays inside the band the claim states.")
-    out.append(f"3. **The printed cell values do not reproduce**: {n_std} Std cell(s) and "
-               f"{n_mar} marginal-coverage cell(s) fall outside the reproduction's own 95% "
-               "bootstrap interval, and the disagreements do not share a direction. The Std "
-               "comparison additionally lacks the resolution to be evidence either way — see "
-               "the resolution table below.")
-    if g and c:
-        out.append(f"4. **This reproduction's own reduction percentages** span "
-                   f"{f(g[0], 1)}–{f(g[1], 1)}% for GLCP and {f(c[0], 1)}–{f(c[1], 1)}% for CQR, "
-                   f"against claimed bands of {v['claimed_glcp_band'][0]:.0f}–"
-                   f"{v['claimed_glcp_band'][1]:.0f}% and {v['claimed_cqr_band'][0]:.0f}–"
-                   f"{v['claimed_cqr_band'][1]:.0f}%. "
-                   + ("Every reproduced cell lies inside the claimed bands, so the reproduction "
-                      "is *consistent with the claim as stated* even though it does not match the "
-                      "paper's individual printed cells."
-                      if not rep_bad else
-                      f"Cells outside: {', '.join(sorted(rep_bad))}."))
+    out = [f"## Verdict: {v['verdict']}", ""]
+    if v["verdict"] != "FALSIFIED":
+        out += ["This page is generated from the verdict; see *Evidence integrity* below for "
+                f"what is unresolved. Blocked by: {', '.join(v.get('blocked_by') or []) or '—'}.",
+                ""]
+        return "\n".join(out)
+
+    cells = ", ".join(f"**{k} at {f(x, 1)}%**" for k, x in sorted(glcp_bad.items()))
+    out += [f"The claim states a reduction of {glo:.0f}–{ghi:.0f}% for GLCP-type base methods "
+            f"and {clo:.0f}–{chi:.0f}% for CQR-type, **across all five datasets**, citing "
+            "Table 1. The paper's own Table 1 contradicts the GLCP half:", "",
+            f"> {cells}, against a stated floor of {glo:.0f}%.", "",
+            f"The CQR half holds on every dataset ({len(cqr_bad)} violations), so the "
+            "conjunction fails on the GLCP half alone. This is exact arithmetic on the "
+            "paper's printed cells — **no measurement from this reproduction enters it**, "
+            "which is what makes it robust to the reproducibility problem described below.",
+            "",
+            "Three things have to hold before that arithmetic means anything. Each is checked "
+            "by [`verify_claim4_band.py`](repro/src/verify_claim4_band.py), which exits nonzero "
+            "if any fails:", ""]
+    out.append("1. **The transcription is the paper's.** Every Table 1 cell is re-parsed from "
+               "the archived paper text by "
+               "[`verify_transcription.py`](repro/src/verify_transcription.py), which is "
+               "mutation-tested: corrupting a cell makes it fail.")
+    if route.get("identification_margin"):
+        out.append(f"2. **The printed percentages are the quantity the claim ranges over.** "
+                   f"\"Reduces standard deviation by X%\" reads naturally as a plain relative "
+                   f"reduction, but the paper defines its improvement as "
+                   f"`{route['formula']}`. Re-applying *that* formula to the printed Std cells "
+                   f"reproduces the printed percentages to a mean of "
+                   f"{f(route['formula_mean_abs_error_pts'], 2)} points across all ten cells, "
+                   f"against {f(route['closest_plain_relative_error_pts'], 2)} for the closest "
+                   f"plain-relative reading — a factor of "
+                   f"{f(route['identification_margin'], 1)}. The quantity is identified, not "
+                   f"assumed.")
+    rob = route.get("violations") or {}
+    if rob:
+        parts = []
+        for k, r in sorted(rob.items()):
+            lo_, hi_ = r["pct_range_under_rounding"]
+            parts.append(f"{k}'s true value lies in [{f(lo_, 2)}, {f(hi_, 2)}]%, so even its "
+                         f"most favourable corner is {f(r['stated_floor_with_slack'] - hi_, 1)} "
+                         f"points below the {f(r['stated_floor_with_slack'], 1)}% floor")
+        out.append("3. **Rounding cannot explain it.** The Std cells are printed to two "
+                   "decimals, so each implies an interval. Propagating those: "
+                   + "; ".join(parts) + ".")
+    done_txt = ("All five real datasets were run" if repro.get("all_five_datasets_ran")
+                else f"{len(ran)} of the five real datasets have so far been run")
     out += ["",
-            "The reason this is BLOCKED rather than FALSIFIED is stated in full under "
-            "*Evidence integrity* below: a reproduction that does not match the printed table "
-            "cannot be used to convict the paper, and FALSIFIED would earn the same credit as "
-            "VERIFIED.", ""]
+            "### A separate finding: the printed table does not reproduce", "",
+            f"Independently of the verdict, {done_txt} end to end at the "
+            f"authors' committed defaults "
+            f"({', '.join('`%s`' % d for d in sorted(ran))}), "
+            f"through the authors' own `procedure.py` and `sum_tab.py`. A dataset counts here "
+            f"only at the full 50-repeat length: a shard set that stops short tiles its "
+            f"repeats perfectly and would otherwise be summarised as if complete, "
+            f"manufacturing disagreements against a 50-repeat printed column. The printed "
+            f"cells did "
+            f"**not** reproduce: {n_std} Std cell(s) and {n_mar} marginal-coverage cell(s) fall "
+            "outside the reproduction's own 95% bootstrap interval, and the disagreements do "
+            "not share a direction — the signature of a table printed to a precision that 50 "
+            "repeats do not determine, rather than of a single bug.", "",
+            "That result is reported, not used. It cannot change whether "
+            f"{f(min(glcp_bad.values()), 1)}% is below {glo:.0f}%, so it does not gate the "
+            "verdict in either direction; the full analysis, including the rule that was "
+            "registered before STAR, DERMA and TISSUE had produced a single number, is in "
+            "[`repro/artifacts/c4_preregistration.md`](repro/artifacts/c4_preregistration.md).",
+            ""]
     return "\n".join(out)
 
 

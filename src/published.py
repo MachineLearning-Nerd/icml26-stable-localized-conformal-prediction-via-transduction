@@ -128,6 +128,10 @@ TABLE2 = {
     },
 }
 
+# Repeats behind every Table 1 column (Section 5.1). A reproduction assembled
+# from shards is only comparable to the printed cells at this exact count.
+REAL_REPEATS = 50
+
 # The claim set under test, verbatim from the challenge record.
 CLAIM4_GLCP_BAND = (20.0, 48.0)
 CLAIM4_CQR_BAND = (6.0, 29.0)
