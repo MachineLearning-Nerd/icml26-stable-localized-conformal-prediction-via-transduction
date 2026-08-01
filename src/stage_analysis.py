@@ -1456,6 +1456,7 @@ def claim5(results):
             "stated 'largest gains at n=30' does not hold for the CQR row of the table it cites. "
             "The margin is 0.4 points; see `largest_gain_ordering.CQR.gap_ci95` for whether 50 "
             "repeats can resolve it at all."),
+        "corrected_claim": _c5_corrected_claim(largest_at_30, ordering),
         # string keys: JSON has no integer keys, and these are read back after a round-trip
         "published_cqr_pct_by_n": {str(n): P.TABLE2[n]["CQR"]["pct"]["ours"] for n in (30, 100, 500)},
         "negative_control_m_equals_n": m_control,
@@ -1533,6 +1534,60 @@ def _setting_n(tag):
     """
     m = re.search(r"-n(\d+)-", tag)
     return int(m.group(1)) if m else P.REAL_N
+
+
+def _c5_corrected_claim(measured_argmax_is_n30, ordering):
+    """What Table 2 supports, stated separately from what the claim says.
+
+    Claim 5's ordering assertion is checked against GLCP only, which on its own
+    looks like the claim was trimmed to the half that works. It was not -- the
+    CQR half fails in the paper's OWN printed table, not in this reproduction --
+    but a reader is entitled to see that stated rather than inferred from a
+    check name, and to see the statement Table 2 does support.
+
+    Same test as Claim 4's band: a disagreement counts only if it survives the
+    printed rounding. 16.3 rounds from [16.25, 16.35] and 16.7 from
+    [16.65, 16.75], so no pair of true values consistent with the printed cells
+    can put the CQR maximum at n = 30.
+    """
+    half = 0.05  # half an ulp of a one-decimal percentage
+    out = {}
+    for model in MODELS:
+        pub = {n: P.TABLE2[n][model]["pct"]["ours"] for n in (30, 100, 500)}
+        best = max(pub, key=lambda n: pub[n])
+        rivals = {n: v for n, v in pub.items() if n != 30}
+        top_rival = max(rivals, key=lambda n: rivals[n])
+        # Could n = 30 still be the true maximum, given the printed rounding?
+        survives = (pub[30] + half) < (pub[top_rival] - half)
+        out[model] = {
+            "published_pct_by_n": pub,
+            "published_argmax_n": best,
+            "claim_says_argmax_is_n30": True,
+            "published_table_agrees": best == 30,
+            "disagreement_survives_the_printed_rounding": bool(best != 30 and survives),
+            "this_reproduction_puts_the_maximum_at_n30": bool(
+                measured_argmax_is_n30.get(model)),
+        }
+    bad = [m for m, d in out.items() if d["disagreement_survives_the_printed_rounding"]]
+    return {
+        "per_base_type": out,
+        "needs_repair": bool(bad),
+        "base_types_where_the_claim_fails_against_the_paper": bad,
+        "as_claimed": ("the largest stability gains occur at n = 30, with Std reductions of "
+                       "31.2% (GLCP) and 16.3% (CQR)"),
+        "supported_by_table_2": (
+            "the largest stability gains occur at n = 30 for the GLCP-type base method, with a "
+            "Std reduction of 31.2%; for the CQR-type base method the reduction at n = 30 is "
+            "16.3% and the maximum over the reported calibration sizes is 16.7% at n = 100"),
+        "why_the_verdict_is_not_falsified": (
+            "Unlike Claim 4, where the paper's printed cell lies outside the claimed band, here "
+            "the claim's two NUMBERS are both exactly right -- 31.2 and 16.3 are Table 2's n=30 "
+            "cells. What fails is the ordering word 'largest', and only for CQR, by 0.4 points. "
+            "This reproduction independently puts the maximum at n = 30 for both base types, so "
+            "the disagreement is between the claim and the paper's own table rather than between "
+            "the claim and the world. It is reported in full and the gated check is restricted "
+            "to GLCP so that it cannot pass on a quantity the paper itself contradicts."),
+    }
 
 
 def claim6(results):

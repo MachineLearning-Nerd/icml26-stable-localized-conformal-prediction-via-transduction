@@ -630,6 +630,12 @@
    "job_id": "6a6e2e7ba00abefd4b28bbd1",
    "flavor": "cpu-upgrade",
    "minutes_since_launch_at_detection": 26.1
+  },
+  "sim/logabs-n100-m500-w8": {
+   "where": "hf-cpu-upgrade",
+   "job_id": "6a6e33156b79c09949c1e830",
+   "flavor": "cpu-upgrade",
+   "minutes_since_launch_at_detection": 13.1
   }
  },
  "transcription_audit": {
@@ -3227,6 +3233,41 @@
     }
    },
    "cqr_ordering_finding": "The paper's own Table 2 gives CQR 16.7% at n=100 against 16.3% at n=30, so the stated 'largest gains at n=30' does not hold for the CQR row of the table it cites. The margin is 0.4 points; see `largest_gain_ordering.CQR.gap_ci95` for whether 50 repeats can resolve it at all.",
+   "corrected_claim": {
+    "per_base_type": {
+     "GLCP": {
+      "published_pct_by_n": {
+       "30": 31.2,
+       "100": 23.2,
+       "500": 26.6
+      },
+      "published_argmax_n": 30,
+      "claim_says_argmax_is_n30": true,
+      "published_table_agrees": true,
+      "disagreement_survives_the_printed_rounding": false,
+      "this_reproduction_puts_the_maximum_at_n30": true
+     },
+     "CQR": {
+      "published_pct_by_n": {
+       "30": 16.3,
+       "100": 16.7,
+       "500": 6.3
+      },
+      "published_argmax_n": 100,
+      "claim_says_argmax_is_n30": true,
+      "published_table_agrees": false,
+      "disagreement_survives_the_printed_rounding": true,
+      "this_reproduction_puts_the_maximum_at_n30": true
+     }
+    },
+    "needs_repair": true,
+    "base_types_where_the_claim_fails_against_the_paper": [
+     "CQR"
+    ],
+    "as_claimed": "the largest stability gains occur at n = 30, with Std reductions of 31.2% (GLCP) and 16.3% (CQR)",
+    "supported_by_table_2": "the largest stability gains occur at n = 30 for the GLCP-type base method, with a Std reduction of 31.2%; for the CQR-type base method the reduction at n = 30 is 16.3% and the maximum over the reported calibration sizes is 16.7% at n = 100",
+    "why_the_verdict_is_not_falsified": "Unlike Claim 4, where the paper's printed cell lies outside the claimed band, here the claim's two NUMBERS are both exactly right -- 31.2 and 16.3 are Table 2's n=30 cells. What fails is the ordering word 'largest', and only for CQR, by 0.4 points. This reproduction independently puts the maximum at n = 30 for both base types, so the disagreement is between the claim and the paper's own table rather than between the claim and the world. It is reported in full and the gated check is restricted to GLCP so that it cannot pass on a quantity the paper itself contradicts."
+   },
    "published_cqr_pct_by_n": {
     "30": 16.3,
     "100": 16.7,

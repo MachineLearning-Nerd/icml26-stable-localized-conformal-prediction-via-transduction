@@ -1489,6 +1489,41 @@ def _c4(a):
     return "\n".join(out)
 
 
+def _c5_corrected(v):
+    """The statement Table 2 supports, next to the statement the claim makes.
+
+    The gated ordering check covers GLCP only, which without this section reads
+    like the claim was trimmed to the half that passes. It is here so the reader
+    sees which half fails, against what, and by how much.
+    """
+    cc = v.get("corrected_claim")
+    if not cc:
+        return ""
+    rows = ["| Base | published % at n = 30 / 100 / 500 | paper's argmax | claim's argmax | "
+            "survives rounding | this reproduction's argmax is n=30 |",
+            "| --- | --- | --- | --- | --- | --- |"]
+    for model, d in cc["per_base_type"].items():
+        pub = d["published_pct_by_n"]
+        rows.append(
+            f"| {model} | {pub['30']} / {pub['100']} / {pub['500']} | n = {d['published_argmax_n']} | "
+            f"n = 30 | {'**yes**' if d['disagreement_survives_the_printed_rounding'] else '—'} | "
+            f"{f(d['this_reproduction_puts_the_maximum_at_n30'])} |")
+    return "\n".join([
+        "### The statement Table 2 actually supports",
+        "",
+        "\n".join(rows), "",
+        "A disagreement is only counted when it survives the printed rounding, the same test",
+        "Claim 4's band gets: 16.3 rounds from [16.25, 16.35] and 16.7 from [16.65, 16.75], so no",
+        "true values consistent with the printed cells can put the CQR maximum at n = 30.",
+        "",
+        f"- **As claimed:** {cc['as_claimed']}.",
+        f"- **Supported by Table 2:** {cc['supported_by_table_2']}.",
+        "",
+        f"> **Why this is VERIFIED and not FALSIFIED.** {cc['why_the_verdict_is_not_falsified']}",
+        "",
+    ])
+
+
 def _c5(a):
     v = a["verdicts"]["C5"]
     rows = ["| n | base Std | ours Std | % (repro) | % (paper) |", "| --- | --- | --- | --- | --- |"]
@@ -1560,6 +1595,7 @@ def _c5(a):
         "n = 30 — the wording is exactly right for GLCP and off by 0.4 points for CQR. Reported, not",
         "smoothed over.",
         "",
+        _c5_corrected(v),
         "## Negative control — the gating one: m = n",
         "",
         "Theorem 4.6 credits StCP's stability to the unlabeled sample being large —",
