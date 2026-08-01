@@ -5,6 +5,7 @@ nodes printed. Every number reported on the candidate pages comes from here.
 """
 
 import glob
+import importlib.util
 import json
 import os
 import sys
@@ -70,19 +71,21 @@ def _merge_setting(setting_dir):
 
 
 def _load_sim_sum_tab(upstream_root):
-    """Import `SimuAnalysis/sum_tab.py`, which is guarded by `__main__` and so safe.
+    """Load `SimuAnalysis/sum_tab.py`, which is guarded by `__main__` and so safe.
 
     Its `select_stcp_row` is the authors' own lambda-selection rule for Table 2.
     Calling it beats reimplementing it: the judge's objection to the previous
     logbook was precisely that the evidence was a clean-room reimplementation
     rather than the paper's code.
-    """
-    path = os.path.join(upstream_root, "SimuAnalysis")
-    if path not in sys.path:
-        sys.path.insert(0, path)
-    import sum_tab as sim_sum_tab
 
-    return sim_sum_tab
+    Loaded by file path, never by module name: `RealAnalysis/sum_tab.py` has the
+    same name, has no `__main__` guard, and opens five result pickles on import.
+    """
+    path = os.path.join(upstream_root, "SimuAnalysis", "sum_tab.py")
+    spec = importlib.util.spec_from_file_location("stcp_simu_sum_tab", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def _sim_table(parts, n, alpha=0.1, sim_sum_tab=None):

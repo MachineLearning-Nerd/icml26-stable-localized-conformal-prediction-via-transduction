@@ -109,8 +109,26 @@ json.dump({"kind":"invariants","dtype":"logabs","n":30,"m":500,"reps":5,"lambda_
       "mean_treatment_shift_delta_sq":0.055,"mean_null_shift_delta_sq":0.005}},
   open(os.path.join(ROOT,"checks","invariants.json"),"w"))
 
-json.dump({"kind":"control","control_is_informative":True,
-  "exchangeable":{"coverage":0.903,"in_band":True},
-  "non_exchangeable":{"coverage":0.812,"in_band":False},
-  "band":[0.88,0.9+0.02+1/31]}, open(os.path.join(ROOT,"checks","control_exchangeability.json"),"w"))
+BAND=[0.88,0.9+0.02+1/31]
+
+def _arm(name, exch, mean):
+    per=[mean]*20
+    return {"arm":name,"exchangeable":exch,
+        "calibration_distribution":"target" if exch else "source (mu_s, gamma_s=1.2, me_s=d/3)",
+        "repeats":len(per),"coverage_per_repeat":per,"coverage_mean":mean,
+        "coverage_stderr":0.004,"coverage_ci95":[mean-0.008,mean+0.008],
+        "selected_lambda_idx":[2]*len(per),"band":BAND,
+        "inside_band":bool(BAND[0]<=mean<BAND[1])}
+
+# CONTROL_MEAN_NONEXCH is the knob the plumbing fixture turns: pushing the
+# non-exchangeable arm back inside the band must make C6 BLOCKED, not FALSIFIED.
+NONEXCH=float(os.environ.get("PLUMB_NONEXCH_COVERAGE",0.812))
+arms=[_arm("exchangeable",True,0.903),_arm("non_exchangeable",False,NONEXCH)]
+json.dump({"kind":"control_exchangeability","dtype":"logabs","n":30,"m":500,"reps":20,
+  "band":{"lo":BAND[0],"hi":BAND[1],
+      "formula":"[1-a-a_tol, 1-a+a_tol+1/(n+1)) at a=0.1, a_tol=0.02, n=30"},
+  "seconds":0.0,"arms":arms,
+  "control_is_informative":arms[0]["inside_band"] and not arms[1]["inside_band"],
+  "interpretation":"synthetic plumbing fixture"},
+  open(os.path.join(ROOT,"checks","control_exchangeability.json"),"w"))
 print("synthetic result tree written")
