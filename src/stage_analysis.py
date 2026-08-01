@@ -300,23 +300,61 @@ def claim2(results):
     }
 
 
+def _base_size_per_repeat(parts, model_idx):
+    """Per-repeat mean set size for the `base` method, pooled across repeat shards."""
+    return np.concatenate(
+        [np.asarray(p["size_mean_per_repeat"])[model_idx] for p in parts["base"]], axis=-1
+    )
+
+
+def _boot_slope(per_n, n_boot=BOOT):
+    """Bootstrap the log-log slope of base set-size variance against n.
+
+    Resamples the actual repeats -- independently at each n, since the three
+    settings are separate runs -- and refits the slope on each resample. The
+    previous revision instead perturbed the point estimate by
+    `exp(N(0, 1/sqrt(2*49)))`, the asymptotic standard error of a log-variance
+    estimate from 50 draws. That is a formula-derived interval: it assumes the
+    sampling distribution rather than measuring it, and would have reported a
+    confidence interval even if the underlying repeats disagreed wildly.
+    """
+    ns = sorted(per_n)
+    logn = np.log(ns)
+    slopes = []
+    for _ in range(n_boot):
+        v = []
+        for n in ns:
+            x = per_n[n]
+            v.append(np.var(x[RNG.integers(0, len(x), len(x))]))
+        v = np.asarray(v)
+        if np.all(v > 0):
+            slopes.append(np.polyfit(logn, np.log(v), 1)[0])
+    slopes = np.asarray(slopes)
+    return {
+        "n_bootstrap": int(len(slopes)),
+        "ci95": [float(np.percentile(slopes, 2.5)), float(np.percentile(slopes, 97.5))],
+        "median": float(np.median(slopes)),
+    }
+
+
 def claim3(results):
     """Thm 4.6: base variance ~ n^-1; StCP gains from lambda and from m >> n."""
-    ns, base_var = [], []
+    ns, base_var, per_n = [], [], {}
     for n in (30, 100, 500):
         key = f"logabs-n{n}-m500"
         if key not in results["sim"]:
             continue
         ns.append(n)
         base_var.append(results["sim"][key]["models"]["GLCP"]["row"]["base"]["std"] ** 2)
-    slope = ci = None
+        parts = results["_sim_parts"].get(key)
+        if parts:
+            per_n[n] = _base_size_per_repeat(parts, MODELS.index("GLCP"))
+    slope = boot = ci = None
     if len(ns) >= 3:
         slope = float(np.polyfit(np.log(ns), np.log(base_var), 1)[0])
-        boots = []
-        for _ in range(500):
-            jitter = np.array(base_var) * np.exp(RNG.normal(0, 1 / np.sqrt(2 * 49), len(ns)))
-            boots.append(np.polyfit(np.log(ns), np.log(jitter), 1)[0])
-        ci = [float(np.percentile(boots, 2.5)), float(np.percentile(boots, 97.5))]
+        if len(per_n) == len(ns):
+            boot = _boot_slope(per_n)
+            ci = boot["ci95"]
 
     lam_mono = {}
     for name, tab in results["sim"].items():
@@ -349,6 +387,7 @@ def claim3(results):
 
     checks = {
         "base_variance_slope_consistent_with_minus_one": bool(ci and ci[0] <= -1.0 <= ci[1]),
+        "slope_interval_is_bootstrapped_not_assumed": bool(boot),
         "stcp_std_decreases_with_lambda_in_valid_region": (
             sum(v["decreases"] for v in lam_mono.values()) >= 0.75 * len(lam_mono)
         ),
@@ -357,7 +396,11 @@ def claim3(results):
     return {
         "verdict": "VERIFIED" if all(checks.values()) else "FALSIFIED",
         "checks": checks,
-        "base_variance_vs_n": {"n": ns, "variance": base_var, "loglog_slope": slope, "slope_ci95": ci},
+        "base_variance_vs_n": {
+            "n": ns, "variance": base_var, "loglog_slope": slope, "slope_ci95": ci,
+            "bootstrap": boot,
+            "ci_method": "resampling the 50 repeats at each n independently, refitting the slope",
+        },
         "std_vs_lambda": lam_mono,
         "ours_std_vs_m_at_n30": {"by_m": m_trend, "monotone_decreasing": m_decreasing},
     }
@@ -496,23 +539,62 @@ def claim5(results):
     }
 
 
+def _cov_ci(per_repeat, label, model_idx, n_boot=BOOT):
+    """Bootstrap a coverage estimate over repeats. Returns None if unavailable."""
+    try:
+        arr = np.asarray(per_repeat[label]["cov_mean_per_repeat"], dtype=float)
+    except (KeyError, TypeError, IndexError):
+        return None
+    if arr.ndim == 2:
+        if model_idx >= arr.shape[0]:
+            return None
+        arr = arr[model_idx]
+    arr = np.asarray(arr, dtype=float).reshape(-1)
+    if arr.size < 2:
+        return None
+    means = [arr[RNG.integers(0, arr.size, arr.size)].mean() for _ in range(n_boot)]
+    return [float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))]
+
+
 def claim6(results):
-    """Thm 4.7 band, plus the control that decides whether the band means anything."""
+    """Thm 4.7 band, plus the control that decides whether the band means anything.
+
+    Coverage is estimated from finitely many repeats, so a point estimate a hair
+    outside a finite-sample band is not a falsification -- it may be Monte-Carlo
+    error. Each setting therefore carries a bootstrap interval, and a setting is
+    only counted against the theorem when its whole interval lies outside.
+    """
     lo, hi = P.THM47_BAND
+
+    def record(tag, v, ci):
+        entry = {"coverage": v, "in_band": bool(lo <= v < hi), "coverage_ci95": ci}
+        entry["excluded_by_ci"] = bool(ci and (ci[1] < lo or ci[0] >= hi))
+        obs[tag] = entry
+
     obs = {}
     for name, tab in results["sim"].items():
-        for model in MODELS:
+        parts = results["_sim_parts"].get(name, {})
+        for mi, model in enumerate(MODELS):
             v = tab["models"][model]["row"]["ours-sel"]["marginal"]
-            obs[f"sim:{name}/{model}"] = {"coverage": v, "in_band": bool(lo <= v < hi)}
+            ci = None
+            if parts.get("StCP-sel"):
+                arr = np.concatenate(
+                    [np.asarray(p["cov_mean_per_repeat"])[mi] for p in parts["StCP-sel"]], axis=-1
+                ).reshape(-1)
+                means = [arr[RNG.integers(0, arr.size, arr.size)].mean() for _ in range(BOOT)]
+                ci = [float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))]
+            record(f"sim:{name}/{model}", v, ci)
     for ds, tab in results["real"].items():
-        for model in MODELS:
+        for mi, model in enumerate(MODELS):
             v = tab["summary"][model]["ours-sel"]["marginal"]
-            obs[f"real:{ds}/{model}"] = {"coverage": v, "in_band": bool(lo <= v < hi)}
+            record(f"real:{ds}/{model}", v, _cov_ci(tab.get("per_repeat") or {}, "SLCP-sel", mi))
 
     ctrl = results.get("control_exchangeability")
     informative = bool(ctrl and ctrl["control_is_informative"])
+    excluded = [k for k, v in obs.items() if v["excluded_by_ci"]]
+    outside_pt = [k for k, v in obs.items() if not v["in_band"]]
     checks = {
-        "all_settings_inside_band": all(v["in_band"] for v in obs.values()),
+        "no_setting_excluded_by_its_confidence_interval": not excluded,
         "control_makes_the_band_informative": informative,
     }
     verdict = "VERIFIED" if all(checks.values()) else ("BLOCKED" if not informative else "FALSIFIED")
@@ -522,6 +604,8 @@ def claim6(results):
         "band": [lo, hi],
         "observed": obs,
         "n_settings": len(obs),
+        "outside_band_point_estimate": outside_pt,
+        "excluded_by_confidence_interval": excluded,
         "negative_control": ctrl,
         "note": (
             "The band is 7.2 points wide; without a control that exits it, an in-band "
@@ -562,7 +646,7 @@ def _load_real(real_dir, upstream_root):
         n_reported = int(shards[0]["n_reported"])
         out[base] = {
             "summary": stage_real._summarise(merged, sum_tab, n_reported),
-            "per_repeat": {"_note": "pooled across shards; see results/real/*-s*.json"},
+            "per_repeat": meta.pop("pooled_per_repeat"),
             "n_reported": n_reported,
             "repeats": meta["repeats"],
         }

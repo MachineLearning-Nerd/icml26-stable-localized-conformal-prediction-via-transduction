@@ -66,8 +66,9 @@
     ],
     "fails_if": "the base slope is inconsistent with -1, or StCP variance fails to decrease in lambda, or the m>>n regime shows no gain"
    },
-   "non_circularity_note": "n and m grids are the paper's own {30,100,500}, not values chosen to make a fitted exponent land on -1; the exponent is estimated, never assumed.",
-   "negative_control": "The oracle baseline, which augments calibration with real labels, must show the 1/n law with a smaller constant but NOT the m-driven term."
+   "non_circularity_note": "n is swept over values the paper itself uses (30/100/500) and the slope is fitted, never assumed. The lambda- and m-monotonicity checks read set-size standard deviations, which `check_order` does not touch -- unlike the discrepancy/delta ordering used in Claim 1.",
+   "negative_control": "The oracle baseline, which augments calibration with real labels, must show the 1/n law with a smaller constant but NOT the m-driven term.",
+   "vacuity_guard": "The log-log slope's interval must be BOOTSTRAPPED from the repeats, not derived from an asymptotic formula. An earlier revision perturbed the point estimate by exp(N(0,1/sqrt(2*49))) -- the asymptotic s.e. of a log-variance from 50 draws -- which assumes the sampling distribution instead of measuring it and would report a tight interval even if the repeats disagreed. Only three values of n are available, so the interval is wide by construction and must be reported, not hidden."
   },
   {
    "id": "C4",
@@ -153,7 +154,7 @@
     ],
     "fails_if": "coverage falls outside the band at any assumption-satisfying setting"
    },
-   "vacuity_guard": "The band [0.88, 0.952258) is 7.2 points wide, so an in-band observation is weak evidence on its own. The check counts only if a control that BREAKS exchangeability is shown to land outside it.",
+   "vacuity_guard": "The band is ~7.2 points wide, so an in-band observation is weak on its own: the claim stays BLOCKED unless the non-exchangeable control leaves the band. Symmetrically, a point estimate just outside the band is NOT a falsification -- coverage is estimated from finitely many repeats, so each setting carries a bootstrap interval and only a setting whose entire interval lies outside counts against Theorem 4.7.",
    "negative_control": "Non-exchangeable calibration (target calibration scores drawn from the shifted source distribution) must push ours-sel coverage outside [0.88, 0.952258)."
   }
  ]

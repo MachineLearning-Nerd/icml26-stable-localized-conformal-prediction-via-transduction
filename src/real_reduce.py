@@ -70,8 +70,15 @@ def merge(shards):
         merged[key][1] = np.std(cov, axis=-1)
         merged[key][3] = np.std(siz, axis=-1)
 
+    pooled = {}
+    for label in {lb for sh in shards for lb in sh["per_repeat"]}:
+        pooled[label] = {
+            field: _pool([sh["per_repeat"] for sh in shards], label, field).tolist()
+            for field in ("cov_mean_per_repeat", "size_mean_per_repeat")
+        }
+
     n_repeats = sum(b - a for a, b in spans)
-    return merged, {"shards": spans, "repeats": n_repeats}
+    return merged, {"shards": spans, "repeats": n_repeats, "pooled_per_repeat": pooled}
 
 
 def _label_map(keys):
