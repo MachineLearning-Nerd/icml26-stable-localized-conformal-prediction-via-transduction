@@ -93,7 +93,14 @@ def build(upstream_root, lo, hi):
 
 
 def assert_science_unchanged(upstream_root):
-    """Guard: the shard copy must differ from upstream only in the three edits."""
+    """Guard: the shard copy must differ from upstream only in the three edits.
+
+    Both directions are checked. Watching only for *removed* lines would miss the
+    failure that actually matters -- a line ADDED into the repeat loop, a stray
+    reseed or an altered argument, which changes the science while deleting
+    nothing. Since `build` applies three fixed textual substitutions, every added
+    line is known in advance and anything else is foreign.
+    """
     with open(os.path.join(upstream_root, "SimuAnalysis", "core.py")) as f:
         a = f.read().splitlines()
     with open(os.path.join(upstream_root, "SimuAnalysis", "core_shard.py")) as f:
@@ -103,4 +110,11 @@ def assert_science_unchanged(upstream_root):
     unexpected = [l for l in removed if not re.match(r"\s*for rep in range\(repeats\):", l)]
     if unexpected:
         raise RuntimeError(f"shard patch removed unexpected lines: {unexpected[:5]}")
-    return {"removed_lines": removed, "ok": True}
+
+    allowed = set(LOOP_REPLACEMENT.splitlines()) | set(RAW_CAPTURE.splitlines())
+    added = [l for l in b if l not in set(a)]
+    foreign = [l for l in added
+               if l not in allowed and not re.match(r"SHARD_(LO|HI) = \d+$", l.strip())]
+    if foreign:
+        raise RuntimeError(f"shard patch added unexpected lines: {foreign[:5]}")
+    return {"removed_lines": removed, "added_lines": added, "ok": True}

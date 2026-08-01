@@ -47,6 +47,60 @@ def _worst(got, ref):
     return max(float(np.abs(np.asarray(got[k]) - np.asarray(ref[k])).max()) for k in METRICS)
 
 
+def _check_patch_guard(failures):
+    """The shard patch must be caught if it ever changes the science.
+
+    `patch_core.build` applies three fixed textual edits to the authors' `core.py`.
+    The guard that certifies "nothing else changed" is only worth its claim if it
+    fires on a change, so two are injected here: a reseed added inside the repeat
+    loop, and a quietly altered loop bound. Both add lines without removing any,
+    which is the case a removal-only guard cannot see.
+    """
+    import shutil
+    import tempfile
+
+    import patch_core
+    import upstream
+
+    up_real = upstream.ensure()
+    with tempfile.TemporaryDirectory() as tmp:
+        # Only SimuAnalysis is needed: that is where core.py lives and where the
+        # patched copy is written.
+        shutil.copytree(os.path.join(up_real, "SimuAnalysis"),
+                        os.path.join(tmp, "SimuAnalysis"))
+        patch_core.build(tmp, 0, 10)
+        core = os.path.join(tmp, "SimuAnalysis", "core_shard.py")
+        clean = open(core).read()
+
+        print("\nShard-patch guard (patch_core.assert_science_unchanged):")
+        try:
+            patch_core.assert_science_unchanged(tmp)
+            print("  clean patch                      accepted")
+        except RuntimeError as exc:
+            failures.append(f"the guard rejects its own clean patch: {exc}")
+            return
+
+        injections = {
+            "reseed added inside the repeat loop":
+                clean.replace('        print(f"[shard', '        setseed(999)\n'
+                              '        print(f"[shard', 1),
+            "loop bound quietly altered":
+                clean.replace("min(SHARD_HI, repeats)", "min(SHARD_HI, repeats-1)", 1),
+        }
+        for name, text in injections.items():
+            if text == clean:
+                failures.append(f"injection '{name}' did not modify the file")
+                continue
+            open(core, "w").write(text)
+            try:
+                patch_core.assert_science_unchanged(tmp)
+                failures.append(f"the guard did NOT catch: {name}")
+                print(f"  {name:32s} NOT CAUGHT")
+            except RuntimeError:
+                print(f"  {name:32s} caught")
+            open(core, "w").write(clean)
+
+
 def main():
     rng = np.random.default_rng(0)
     models, repeats, testn = 2, 50, 400
@@ -81,13 +135,15 @@ def main():
         failures.append("the wrong merge produced the same answer as the right one, "
                         "so these checks cannot discriminate")
 
+    _check_patch_guard(failures)
+
     if failures:
         print("\nFAIL:")
         for f in failures:
             print("  -", f)
         return 1
-    print("\nOK: every shard layout reproduces the unsharded result, and the wrong "
-          "merge does not.")
+    print("\nOK: every shard layout reproduces the unsharded result, the wrong merge "
+          "does not, and the patch guard catches an injected science change.")
     return 0
 
 
