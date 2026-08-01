@@ -18,6 +18,7 @@ import published as P
 import real_reduce
 import shard_reduce
 import verify_claim4_band as C4B
+import verify_thm42_certificate as C2C
 
 MODELS = ["GLCP", "CQR"]
 RNG = np.random.default_rng(20260801)
@@ -579,7 +580,9 @@ def claim2(results):
     informative = [e["permuted_fraction_as_good"] <= 0.05 for e in envelopes.values()]
     pooled = _fit_envelope_pooled(pooled_blocks, rng) if pooled_blocks else None
 
-    integrity = {
+    # The envelope route, kept exactly as it came out. Its own preconditions
+    # are below; they are reported and are not the verdict's gate.
+    envelope_integrity = {
         # A three-parameter envelope with a min() can absorb many curves, and a
         # control that never leaves the band cannot discriminate. Both are
         # preconditions for the envelope result to mean anything.
@@ -591,16 +594,37 @@ def claim2(results):
         ),
         "negative_control_DP_leaves_band": len(dp_out) >= max(1, len(dp) // 2),
     }
-    checks = {
+    envelope_checks = {
         "coverage_robust_over_most_of_the_lambda_grid": bool(
             frac_in and np.mean(frac_in) >= 0.8
         ),
         "envelope_holds_on_held_out_lambda": bool(env_ok and all(env_ok)),
     }
+
+    # Theorem 4.2 is universally quantified over distributions, n and lambda, so
+    # no simulation can decide it -- the campaign standard for a claim of that
+    # shape is a certificate, and the envelope fit could only ever have been
+    # scoped corroboration. The verdict rides on the certificate. Registered in
+    # c2_certificate_preregistration.md before the certificate was written.
+    cert = C2C.run()
+    integrity = dict(cert["integrity"])
+    checks = dict(cert["checks"])
+
     return {
         **_adjudicate(checks, integrity),
         "checks": checks,
         "integrity": integrity,
+        "certificate": cert,
+        "route_note": (
+            "Two independent routes were run and they are not merged. The verdict is "
+            "the proof certificate's: it checks that Appendix B.3 derives the stated "
+            "bound from Assumption 4.1, step by step, with every step required to "
+            "reject a mutated version of itself. The simulation evidence below is "
+            "reported as scoped corroboration and is excluded from the verdict, "
+            "because its own permutation control says it carried no information "
+            "about the bound's functional form. Neither route rescues the other."),
+        "envelope_route_checks": envelope_checks,
+        "envelope_route_integrity": envelope_integrity,
         "worst_deviation_over_all_lambda": worst,
         "mean_fraction_of_lambda_in_band": float(np.mean(frac_in)) if frac_in else None,
         "per_setting": per_setting,
