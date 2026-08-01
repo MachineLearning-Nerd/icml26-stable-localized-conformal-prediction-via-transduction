@@ -201,5 +201,11 @@
   "seconds": 3139.3,
   "cores": 2,
   "host": "darwin-arm64"
+ },
+ "real/star-w0": {
+  "where": "local",
+  "seconds": 4369.7,
+  "cores": 2,
+  "host": "darwin-arm64"
  }
 }
