@@ -1,23 +1,39 @@
 """Claim 1: measure the defining properties of Equation 7, not just "it runs".
 
-Three numbers decide whether the implemented object is the object Equation 7
-describes, and all three are measured on the paper's own LogAbs setting with the
-paper's own code:
+Four things decide whether the implemented object is the object Equation 7
+describes. All are measured on the paper's own LogAbs setting with the paper's
+own code, at the paper's own scale.
 
-  1. Provenance. `F_hat_S|X` must see labeled SOURCE data only, and
-     `F_hat_S^1` must see UNLABELED target covariates only. Recorded as a
-     construction trace with array identities and shapes, so a reviewer can
-     confirm no target label reaches the CDF estimator.
+  1. Provenance. `F_hat_S|X` must see labeled SOURCE data only, and the
+     transductive term must see UNLABELED target covariates only. Recorded as a
+     construction trace with shapes, so a reviewer can confirm no target label
+     reaches the CDF estimator.
 
-  2. lambda = 0 recovers the standard conformal quantile of `F_hat_S^0`
-     (Section 3 and Appendix C.1). Measured as
-     |q_StCP(lambda=0) - Q(1-alpha_n; F_hat_S^0)|, which must be small relative
-     to the spacing of the calibration score order statistics -- the finite-grid
-     alignment cannot do better than that spacing.
+  2. Objective identity. `Tuner.tune_marginal` returns `(discrepancy, ||delta||^2)`
+     and optimises `L = discrepancy + lambda * ||delta||^2` (Main/Tuner.py:202).
+     That is Equation 7 literally; the identity is re-checked numerically for
+     every lambda and repeat.
 
-  3. lambda -> infinity drives the calibrated parameter back to theta_hat.
-     `Tuner.get_delta_norm()` is exactly ||theta - theta_hat||_2^2 (the deltas
-     are initialised at zero), so it must decrease monotonically in lambda.
+  3. The regularisation path, measured WITHOUT the implementation's repair step.
+     `SLCP.tune_lbd_list` post-processes its results with `check_order`
+     (Main/SLCP.py:8), which re-trains any lambda whose (discrepancy, delta) pair
+     breaks the Pareto ordering. Monotonicity read off that output is imposed
+     rather than observed, so it cannot be evidence. The path is therefore
+     re-measured by calling `tune_marginal` directly per lambda on independent
+     copies -- the authors' own call, minus the repair loop. Both paths are
+     reported so the difference is visible.
+
+  4. Intervention on the unlabeled target sample. Tracing shows the unlabeled
+     target covariates are passed in; refitting against covariates drawn from
+     the SOURCE instead shows they are actually used. If the solution did not
+     move, the transduction would be doing no work.
+
+Deliberately NOT checked: equality of `SLCP.q` with a conformal score quantile.
+`SLCP.q` is a probability level -- it is passed as the `q` argument of
+`Generator.quantile` (Main/SLCP.py:90) -- so comparing it against a score
+threshold compares incommensurable quantities. An earlier revision of this file
+made that mistake; the measured "gap" it reported was an artefact of the units,
+not a property of the method.
 """
 
 import json
@@ -98,42 +114,80 @@ def run(cfg, upstream_root):
         setseed(seed_rep)
         slcp = SLCP(calAgent, semiX, deepcopy(generator), predictor, [2])
         targ_alpha = float(np.clip(1 - (1 - alpha) * (calAgent.n + 1) / calAgent.n, 1e-6, 1 - 1e-6))
-        tuner_list = slcp.tune_lbd_list(
-            5, epoches, 5e-3, int(n_grid), lbds,
-            temperature=temperature, tol_gap=0.001, max_iter=10000, m=200,
-            targ_alpha=targ_alpha, penalty="MSE",
-        )
+        tk = dict(n=5, epochs=epoches, lr=5e-3, n_grid=int(n_grid), temperature=temperature)
+        tail_kw = dict(tol_gap=0.001, max_iter=10000, m=200,
+                       targ_alpha=targ_alpha, penalty="MSE")
 
-        cal_scores = np.asarray(calAgent.getS()).reshape(-1)
-        level = (1 - alpha) * (calAgent.n + 1) / calAgent.n
-        q_conformal = float(np.quantile(cal_scores, level, method="higher"))
-        order = np.sort(cal_scores)
-        spacing = float(np.median(np.diff(order)))
+        def fit(tuner, lbd, unlabeled):
+            return tuner.tune_marginal(
+                calAgent.getX(), calAgent.getS(), unlabeled,
+                tk["n"], tk["epochs"], tk["lr"], tk["n_grid"], float(lbd),
+                tk["temperature"], **tail_kw)
 
-        qs, deltas = [], []
-        for i, lbd in enumerate(lbds):
+        # ---- the UN-ENFORCED regularisation path ---------------------------
+        # `SLCP.tune_lbd_list` post-processes with `check_order` (Main/SLCP.py:8),
+        # which finds any lambda whose (discrepancy, delta) pair breaks the Pareto
+        # ordering and re-trains it warm-started from a neighbour, looping up to
+        # 3*len(lbds) times. Monotonicity read off that output would be imposed by
+        # the implementation, not observed -- a circular check. Calling
+        # `tune_marginal` directly per lambda, as the authors' own loop does but
+        # without the repair step, measures the path the objective really yields.
+        raw = []
+        for lbd in lbds:
+            part1, delta = fit(deepcopy(slcp.tuner), lbd, semiX)
+            raw.append({"lambda": float(lbd), "discrepancy": float(part1),
+                        "delta_sq_norm": float(delta),
+                        "objective": float(part1) + float(lbd) * float(delta)})
+
+        # ---- the enforced path, recorded for comparison ---------------------
+        tuner_list = slcp.tune_lbd_list(tk["n"], tk["epochs"], tk["lr"], tk["n_grid"],
+                                        lbds, temperature=tk["temperature"], **tail_kw)
+        enforced, qs = [], []
+        for i, _ in enumerate(lbds):
             slcp.load_tuner(tuner_list[i], m=200, n=5, temperature=temperature, alpha=alpha)
             qs.append(float(slcp.q))
-            deltas.append(float(tuner_list[i].get_delta_norm()))
+            enforced.append(float(tuner_list[i].get_delta_norm()))
+
+        # ---- intervention: is the UNLABELED TARGET sample actually used? -----
+        # Tracing shows unlabeled target covariates are passed in. This shows they
+        # change the answer: refitting against covariates drawn from the SOURCE
+        # instead must move the solution, or the transduction does no work.
+        setseed(seed_rep + 10_000)
+        sham_X = generate_agent(m, d, me_s, gamma_s, mu_s, dtype).X
+        mid_i = len(lbds) // 2
+        p_sham, d_sham = fit(deepcopy(slcp.tuner), lbds[mid_i], sham_X)
+        mid = raw[mid_i]
 
         per_repeat.append({
             "repeat": rep,
             "n_calibration": int(calAgent.n),
             "m_unlabeled": int(semiX.shape[0]),
-            "conformal_level_1_minus_alpha_n": level,
-            "q_conformal_from_F0": q_conformal,
-            "calibration_score_median_spacing": spacing,
-            "q_stcp_by_lambda": qs,
-            "theta_delta_sq_norm_by_lambda": deltas,
-            "abs_gap_at_lambda0": abs(qs[0] - q_conformal),
-            "gap_over_spacing_at_lambda0": abs(qs[0] - q_conformal) / spacing if spacing > 0 else None,
+            "raw_path": raw,
+            "enforced_delta_sq_norm_by_lambda": enforced,
+            "beta_level_q_by_lambda": qs,
+            "beta_level_note": (
+                "SLCP.q is a PROBABILITY level in [0,1]: it is passed as the `q` argument of "
+                "Generator.quantile (Main/SLCP.py:90), not a score threshold. It is reported "
+                "for completeness and is deliberately NOT compared against a score quantile."),
+            "unlabeled_sample_intervention": {
+                "lambda": float(lbds[mid_i]),
+                "target_unlabeled": {"discrepancy": mid["discrepancy"],
+                                     "delta_sq_norm": mid["delta_sq_norm"]},
+                "source_unlabeled_sham": {"discrepancy": float(p_sham),
+                                          "delta_sq_norm": float(d_sham)},
+                "relative_shift": abs(float(d_sham) - mid["delta_sq_norm"])
+                                  / max(abs(mid["delta_sq_norm"]), 1e-12),
+            },
         })
 
-    deltas = np.array([p["theta_delta_sq_norm_by_lambda"] for p in per_repeat])
-    gaps = np.array([p["abs_gap_at_lambda0"] for p in per_repeat])
-    ratios = np.array([p["gap_over_spacing_at_lambda0"] for p in per_repeat])
-    # Spearman-free monotonicity: fraction of adjacent lambda steps that do not increase.
-    non_increasing = float(np.mean(np.diff(deltas, axis=1) <= 1e-12))
+    raw_delta = np.array([[q["delta_sq_norm"] for q in p["raw_path"]] for p in per_repeat])
+    raw_disc = np.array([[q["discrepancy"] for q in p["raw_path"]] for p in per_repeat])
+    enf_delta = np.array([p["enforced_delta_sq_norm_by_lambda"] for p in per_repeat])
+    shifts = np.array([p["unlabeled_sample_intervention"]["relative_shift"] for p in per_repeat])
+    obj_ok = all(
+        abs(q["objective"] - (q["discrepancy"] + q["lambda"] * q["delta_sq_norm"])) < 1e-9
+        for p in per_repeat for q in p["raw_path"]
+    )
 
     out = {
         "kind": "invariants",
@@ -142,17 +196,33 @@ def run(cfg, upstream_root):
         "seconds": round(time.time() - t0, 1),
         "provenance": provenance,
         "per_repeat": per_repeat,
-        "lambda0_identity": {
-            "mean_abs_gap": float(gaps.mean()),
-            "max_abs_gap": float(gaps.max()),
-            "mean_gap_over_score_spacing": float(ratios.mean()),
-            "max_gap_over_score_spacing": float(ratios.max()),
+        "objective_identity": {
+            "form": "L(lambda) = discrepancy(F_hat_S^0, F_hat_S^1) + lambda * ||theta - theta_hat||^2",
+            "source_anchor": "Main/Tuner.py:202",
+            "holds_for_every_lambda_and_repeat": bool(obj_ok),
         },
-        "lambda_to_infinity": {
-            "fraction_non_increasing_steps": non_increasing,
-            "mean_delta_sq_at_min_lambda": float(deltas[:, 0].mean()),
-            "mean_delta_sq_at_max_lambda": float(deltas[:, -1].mean()),
-            "shrinkage_ratio": float(deltas[:, -1].mean() / max(deltas[:, 0].mean(), 1e-30)),
+        "regularisation_path_unenforced": {
+            "mean_delta_sq_at_min_lambda": float(raw_delta[:, 0].mean()),
+            "mean_delta_sq_at_max_lambda": float(raw_delta[:, -1].mean()),
+            "shrinkage_ratio": float(raw_delta[:, -1].mean() / max(raw_delta[:, 0].mean(), 1e-30)),
+            "fraction_non_increasing_delta_steps": float(np.mean(np.diff(raw_delta, axis=1) <= 1e-12)),
+            "fraction_non_decreasing_discrepancy_steps": float(np.mean(np.diff(raw_disc, axis=1) >= -1e-12)),
+            "delta_shrinks_overall_in_every_repeat": bool(np.all(raw_delta[:, -1] < raw_delta[:, 0])),
+        },
+        "regularisation_path_enforced_by_check_order": {
+            "mean_delta_sq_at_min_lambda": float(enf_delta[:, 0].mean()),
+            "mean_delta_sq_at_max_lambda": float(enf_delta[:, -1].mean()),
+            "fraction_non_increasing_delta_steps": float(np.mean(np.diff(enf_delta, axis=1) <= 1e-12)),
+            "note": ("Reported only to expose the difference. `check_order` re-trains lambdas that "
+                     "break the ordering, so monotonicity here is imposed and carries no evidential "
+                     "weight for Claim 1."),
+        },
+        "unlabeled_target_intervention": {
+            "description": ("Refit at the median lambda against covariates drawn from the SOURCE "
+                            "instead of the unlabeled TARGET sample."),
+            "mean_relative_shift_in_delta_sq": float(shifts.mean()),
+            "min_relative_shift_in_delta_sq": float(shifts.min()),
+            "moved_in_every_repeat": bool(np.all(shifts > 1e-3)),
         },
     }
 

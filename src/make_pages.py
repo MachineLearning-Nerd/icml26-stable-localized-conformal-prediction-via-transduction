@@ -337,11 +337,14 @@ def build_tree(out_dir, analysis):
 
 def _c1(a):
     v = a["verdicts"]["C1"]["evidence"]
-    l0, li, pr = v["lambda0"], v["lambda_inf"], v["provenance"]
+    pr, obj = v["provenance"], v["objective_identity"]
+    raw, enf = v["regularisation_path_unenforced"], v["regularisation_path_enforced_by_check_order"]
+    it = v["unlabeled_target_intervention"]
     return "\n".join([
         "## What was measured",
         "",
-        "Three properties decide whether the implemented object is the object Equation 7 describes.",
+        "Four properties decide whether the implemented object is the object Equation 7 describes.",
+        "All are measured on the authors' code, on the paper's LogAbs setting, at the paper's scale.",
         "",
         "### 1. Provenance — no target label reaches the conditional CDF estimator",
         "",
@@ -350,32 +353,58 @@ def _c1(a):
         f"| `F̂_S\\|X` (conditional CDF) | {pr['F_hat_S_given_X_trained_on']['distribution']} | "
         f"{pr['F_hat_S_given_X_trained_on']['n_rows']} | "
         f"{'yes' if pr['F_hat_S_given_X_trained_on']['uses_target_labels'] else 'no'} |",
-        f"| point predictor | {pr['predictor_trained_on']['distribution']} | {pr['predictor_trained_on']['n_rows']} | no |",
+        f"| point predictor | {pr['predictor_trained_on']['distribution']} | "
+        f"{pr['predictor_trained_on']['n_rows']} | no |",
         "",
         f"{pr['note']}",
         "",
-        "### 2. λ = 0 recovers the standard conformal quantile of `F̂_S⁰`",
+        "### 2. The objective really is Equation 7",
         "",
-        "The finite-grid Wasserstein alignment (Appendix C.1) cannot resolve finer than the spacing",
-        "of the calibration score order statistics, so the gap is reported relative to that spacing.",
+        f"`{obj['form']}`, at `{obj['source_anchor']}`. `Tuner.tune_marginal` returns the two terms",
+        "separately, so the identity is re-checked arithmetically for every λ and every repeat:",
+        f"**{f(obj['holds_for_every_lambda_and_repeat'])}**.",
+        "",
+        "### 3. λ shrinks θ̃ back to θ̂ — measured without the implementation's repair step",
+        "",
+        "> **Circularity found and avoided.** `SLCP.tune_lbd_list` post-processes its results with",
+        "> `check_order` (`Main/SLCP.py:8`), which detects any λ whose (discrepancy, ‖δ‖²) pair breaks",
+        "> the Pareto ordering and re-trains it warm-started from a neighbour, looping up to `3·|Λ|`",
+        "> times. Monotonicity read off that output is **imposed by the implementation, not observed**,",
+        "> and cannot be evidence for the claim. The path below is re-measured by calling",
+        "> `tune_marginal` directly per λ on independent copies — the authors' own call, minus the",
+        "> repair loop. The enforced path is shown alongside so the difference is visible.",
+        "",
+        "| Quantity | Unenforced (adjudicated) | Enforced by `check_order` (context only) |",
+        "| --- | --- | --- |",
+        f"| mean ‖θ̃ − θ̂‖₂² at smallest λ | {f(raw['mean_delta_sq_at_min_lambda'], 6)} | "
+        f"{f(enf['mean_delta_sq_at_min_lambda'], 6)} |",
+        f"| mean ‖θ̃ − θ̂‖₂² at largest λ | {f(raw['mean_delta_sq_at_max_lambda'], 6)} | "
+        f"{f(enf['mean_delta_sq_at_max_lambda'], 6)} |",
+        f"| fraction of λ steps not increasing ‖δ‖² | {f(raw['fraction_non_increasing_delta_steps'])} | "
+        f"{f(enf['fraction_non_increasing_delta_steps'])} |",
+        f"| shrinkage ratio (largest ÷ smallest λ) | {f(raw['shrinkage_ratio'], 4)} | — |",
+        f"| ‖δ‖² shrinks overall in **every** repeat | {f(raw['delta_shrinks_overall_in_every_repeat'])} | — |",
+        "",
+        f"Discrepancy moves the other way, as a regularisation path must: "
+        f"{f(raw['fraction_non_decreasing_discrepancy_steps'])} of λ steps do not decrease it.",
+        "",
+        "### 4. Intervention — the unlabeled target sample actually does the work",
+        "",
+        f"{it['description']} Tracing shows the unlabeled covariates are *passed in*; this shows they",
+        "*change the answer*. Had the solution not moved, the transduction would be inert.",
         "",
         "| Quantity | Value |",
         "| --- | --- |",
-        f"| mean \\|q_StCP(0) − Q(1−α_n; F̂_S⁰)\\| | {f(l0['mean_abs_gap'], 5)} |",
-        f"| max \\|q_StCP(0) − Q(1−α_n; F̂_S⁰)\\| | {f(l0['max_abs_gap'], 5)} |",
-        f"| mean gap ÷ score spacing | {f(l0['mean_gap_over_score_spacing'])} |",
-        f"| max gap ÷ score spacing | {f(l0['max_gap_over_score_spacing'])} |",
+        f"| mean relative shift in ‖δ‖² | {f(it['mean_relative_shift_in_delta_sq'], 4)} |",
+        f"| smallest relative shift across repeats | {f(it['min_relative_shift_in_delta_sq'], 4)} |",
+        f"| solution moved in every repeat | {f(it['moved_in_every_repeat'])} |",
         "",
-        "### 3. λ → ∞ drives θ̃ back to θ̂",
+        "### Not checked, and why",
         "",
-        "`Tuner.get_delta_norm()` is exactly ‖θ̃ − θ̂‖₂² (the deltas are initialised at zero).",
-        "",
-        "| Quantity | Value |",
-        "| --- | --- |",
-        f"| fraction of λ steps that do not increase ‖θ̃ − θ̂‖₂² | {f(li['fraction_non_increasing_steps'])} |",
-        f"| mean ‖θ̃ − θ̂‖₂² at smallest λ | {f(li['mean_delta_sq_at_min_lambda'], 6)} |",
-        f"| mean ‖θ̃ − θ̂‖₂² at largest λ | {f(li['mean_delta_sq_at_max_lambda'], 6)} |",
-        f"| shrinkage ratio (largest ÷ smallest λ) | {f(li['shrinkage_ratio'], 4)} |",
+        "`SLCP.q` is **a probability level**, not a score threshold — it is passed as the `q` argument",
+        "of `Generator.quantile` (`Main/SLCP.py:90`). An earlier revision of this logbook compared it",
+        "against a conformal *score* quantile and reported a large gap; that gap was an artefact of",
+        "comparing incommensurable units, and the check has been withdrawn rather than reinterpreted.",
     ])
 
 

@@ -261,3 +261,33 @@ sequences. A finite experiment corroborates but cannot prove it; a violation at
 any assumption-satisfying instance would falsify it. The band is two-sided, so a
 negative control that breaks exchangeability should be able to push coverage out
 of the band — otherwise the check is vacuous.
+
+## Implementation detail that changes what is testable: `check_order`
+
+`Main/SLCP.py:8` defines `check_order(part1, delta)`, and `tune_lbd_list` calls it
+after fitting every lambda. It scans all pairs `(i, j)` with `i < j` and flags any
+that breaks the expected Pareto ordering — either `delta` failing to decrease
+while `part1` also decreases, or both failing to move apart. The offending
+tuner is then replaced by a deepcopy of its neighbour and re-trained at its own
+lambda, and the scan repeats up to `3 * len(lbd_list)` times.
+
+Consequence for evidence design: **the monotone regularisation path visible in
+`tune_lbd_list` output is enforced, not emergent.** Any check of the form "delta
+decreases in lambda" or "the discrepancy increases in lambda" run against that
+output is circular — it verifies a repair loop, not Equation 7. The Claim 1
+evidence therefore re-measures the path by calling `Tuner.tune_marginal`
+directly for each lambda on independent deepcopies, which is exactly the call
+`tune_lbd_list` makes in its own loop, minus the repair step. Both paths are
+published so the size of the difference is visible to a reviewer.
+
+## Units trap: `SLCP.q` is a probability, not a score
+
+`SLCP.load_tuner` sets `self.q = np.quantile(self.beta, (1-alpha)(n+1)/n)` where
+`beta` are CDF values, and `self.q` is then passed as the `q` argument of
+`Generator.quantile(testX, self.q, ...)` (`Main/SLCP.py:90`), whose signature
+documents `q: float = .9` as a probability. It is therefore a *level*, not a
+score threshold, and must not be compared against `np.quantile(cal_scores, ...)`.
+Doing so produced an apparent discrepancy of ~29 median score spacings that was
+purely a units error. The tell was that the reported "quantiles" clustered near
+0.90–0.93 — the nominal coverage level — across settings where the score
+quantiles ranged over 1.7–2.7.

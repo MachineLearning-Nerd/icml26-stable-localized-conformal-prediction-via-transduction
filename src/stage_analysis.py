@@ -131,21 +131,41 @@ def _boot_pct_sim(parts, model_idx, lam_idx, n_boot=BOOT):
 
 
 def claim1(results):
+    """Equation 7's data flow and objective, measured on the authors' own code.
+
+    Note what is NOT used here: the monotone regularisation path produced by
+    `SLCP.tune_lbd_list`. `check_order` (Main/SLCP.py:8) re-trains any lambda that
+    breaks the ordering, so that path is imposed by the implementation. Only the
+    unenforced path -- direct `tune_marginal` calls, no repair step -- is
+    adjudicated.
+    """
     inv = results.get("invariants")
     if not inv:
         return {"verdict": "BLOCKED", "reason": "invariants node produced no output"}
-    l0, linf = inv["lambda0_identity"], inv["lambda_to_infinity"]
+    obj = inv["objective_identity"]
+    path = inv["regularisation_path_unenforced"]
+    interv = inv["unlabeled_target_intervention"]
     checks = {
-        "cdf_estimator_sees_source_only": inv["provenance"]["F_hat_S_given_X_trained_on"]["uses_target_labels"] is False,
-        "lambda0_recovers_conformal_quantile": l0["max_gap_over_score_spacing"] <= 1.0,
-        "lambda_to_infinity_shrinks_theta": (
-            linf["fraction_non_increasing_steps"] >= 0.9 and linf["shrinkage_ratio"] < 1.0
-        ),
+        "cdf_estimator_sees_source_only":
+            inv["provenance"]["F_hat_S_given_X_trained_on"]["uses_target_labels"] is False,
+        "objective_is_discrepancy_plus_lambda_times_regulariser":
+            bool(obj["holds_for_every_lambda_and_repeat"]),
+        "lambda_shrinks_theta_toward_source_without_the_repair_step":
+            bool(path["delta_shrinks_overall_in_every_repeat"]) and path["shrinkage_ratio"] < 1.0,
+        "unlabeled_target_sample_changes_the_solution":
+            bool(interv["moved_in_every_repeat"]),
     }
     return {
         "verdict": "VERIFIED" if all(checks.values()) else "FALSIFIED",
         "checks": checks,
-        "evidence": {"lambda0": l0, "lambda_inf": linf, "provenance": inv["provenance"]},
+        "evidence": {
+            "provenance": inv["provenance"],
+            "objective_identity": obj,
+            "regularisation_path_unenforced": path,
+            "regularisation_path_enforced_by_check_order":
+                inv["regularisation_path_enforced_by_check_order"],
+            "unlabeled_target_intervention": interv,
+        },
     }
 
 

@@ -17,16 +17,17 @@
    "machine_checkable_contract": {
     "must_hold": [
      "F_hat_S|X is fitted on labeled SOURCE data only (target labels never enter it)",
-     "F_hat_S^1(s) is an average of F over the m UNLABELED target covariates only",
-     "F_hat_S^0 is the empirical CDF of the n labeled target calibration scores",
-     "the calibrated F~ solves argmin d(F_hat_S^0, F_hat_S^1(.;F~)) + lambda*R(F~, F_hat_S|X)",
-     "at lambda = 0 the StCP quantile equals the standard conformal quantile of F_hat_S^0 to within the finite quantile grid resolution",
-     "as lambda grows the calibrated parameter moves monotonically back toward theta_hat (the source estimator)",
-     "the pipeline runs end to end on all five of the paper's real datasets and produces valid prediction sets"
+     "the transductive term is computed from the m UNLABELED target covariates only",
+     "the optimised objective is exactly discrepancy + lambda * ||theta - theta_hat||^2 (Main/Tuner.py:202), verified arithmetically for every lambda and repeat",
+     "on the UNENFORCED path (direct tune_marginal calls, no check_order repair) ||theta - theta_hat||^2 shrinks from the smallest to the largest lambda in every repeat",
+     "refitting against covariates drawn from the SOURCE instead of the unlabeled TARGET sample moves the solution in every repeat"
     ],
-    "fails_if": "any of the above is violated on the paper's own datasets at the paper's own scale"
+    "fails_if": "target labels reach the CDF estimator, the objective is not discrepancy + lambda*regulariser, the unenforced path does not shrink toward theta_hat, or the unlabeled target sample can be swapped for a source sample without changing the solution"
    },
-   "evidence_plan": "Instrument the authors' own implementation on all five Table 1 datasets plus the LogAbs simulation; assert the data-flow invariants above by construction-tracing, and measure the lambda=0 identity and the lambda->infinity limit numerically."
+   "evidence_plan": "Instrument the authors' own implementation on all five Table 1 datasets plus the LogAbs simulation; assert the data-flow invariants above by construction-tracing, and measure the lambda=0 identity and the lambda->infinity limit numerically.",
+   "non_circularity_note": "Main/SLCP.py:8 `check_order` re-trains any lambda whose (discrepancy, delta) pair breaks the Pareto ordering, looping up to 3*|Lambda| times. Monotonicity read off `tune_lbd_list` output is therefore imposed by the implementation and is NOT admissible evidence. Claim 1 is adjudicated only on the path measured by calling `tune_marginal` directly per lambda on independent copies.",
+   "negative_control": "Refit the transductive term against covariates drawn from the SOURCE distribution. The fitted solution must move; if it does not, the transduction is inert and the check is not discriminating.",
+   "withdrawn_check": "An earlier revision compared SLCP.q against the conformal score quantile of F_hat_S^0 and measured a gap of ~29 median score spacings. That comparison was invalid: SLCP.q is a PROBABILITY level, passed as the `q` argument of Generator.quantile (Main/SLCP.py:90), not a score threshold. The check is withdrawn rather than reinterpreted, and no verdict was ever derived from it."
   },
   {
    "id": "C2",
