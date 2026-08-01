@@ -1,12 +1,12 @@
 {
   "stage": "simshard",
-  "note": "Claim 5 negative control, no shift, repeats [35,40).",
+  "note": "Claim 5 negative control, no shift, repeats [40,45).",
   "dtype": "logabs",
   "n": 30,
   "m": 500,
   "shard": [
-    35,
-    40
+    40,
+    45
   ],
   "overrides": {
     "r": 0.0,
