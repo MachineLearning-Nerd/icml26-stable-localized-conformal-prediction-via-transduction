@@ -1,0 +1,25 @@
+{
+ "real/crime-s2": {
+  "where": "hf-jobs",
+  "flavor": "cpu-upgrade",
+  "cores": 8,
+  "host": "Linux-x86_64 (cgroup quota 8)",
+  "seconds": 6942.0
+ },
+ "sim/logabs-n30-m500-s0": {
+  "where": "hf-jobs",
+  "flavor": "cpu-upgrade",
+  "cores": 8,
+  "host": "Linux-x86_64 (cgroup quota 8)",
+  "seconds": null,
+  "seconds_note": "not recorded in the harvested payload"
+ },
+ "sim/logabs-n30-m500-s1": {
+  "where": "hf-jobs",
+  "flavor": "cpu-upgrade",
+  "cores": 8,
+  "host": "Linux-x86_64 (cgroup quota 8)",
+  "seconds": null,
+  "seconds_note": "not recorded in the harvested payload"
+ }
+}
