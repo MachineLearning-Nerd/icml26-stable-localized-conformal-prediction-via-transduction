@@ -987,6 +987,15 @@ def _c5(a):
                  "checks are dropped rather than passed, and dropping is not passing:", ""]
         for name, why in sorted(dropped.items()):
             boot.append(f"- `{name}` — {why}")
+    mc = v.get("negative_control_m_equals_n")
+    mrows = []
+    if mc:
+        mrows = ["| Base | % gain at m = 500 | % gain at m = n = 30 | shrinks |",
+                 "| --- | --- | --- | --- |"]
+        for model in ("GLCP", "CQR"):
+            mrows.append(f"| {model} | {f(mc[model]['pct_at_m500'], 1)} | "
+                         f"{f(mc[model]['pct_at_m30'], 1)} | "
+                         f"{f(mc[model]['pct_at_m30'] < mc[model]['pct_at_m500'])} |")
     ctrl = v.get("negative_control_no_shift")
     ctrl_rows = []
     if ctrl:
@@ -1018,11 +1027,26 @@ def _c5(a):
         "n = 30 — the wording is exactly right for GLCP and off by 0.4 points for CQR. Reported, not",
         "smoothed over.",
         "",
-        "## Negative control — remove the shift",
+        "## Negative control — the gating one: m = n",
         "",
-        "With r = 0 and γ_s = γ_t there is no covariate or noise shift, so the source model carries",
-        "no extra information and the transfer gain should shrink.",
+        "Theorem 4.6 credits StCP's stability to the unlabeled sample being large —",
+        "`O(m⁻¹ + {n(1+λ)²}⁻¹)` against `O(n⁻¹)`. Neither rate contains a shift term, so the",
+        "quantity to remove is the size of m, not the shift. Setting m = n = 30 removes exactly",
+        "that advantage and the gain must shrink. This arm gates the claim.",
+        "", "\n".join(mrows) if mrows else "_control pending_",
+        "",
+        "## Negative control — remove the shift (reported, not gating)",
+        "",
+        "With r = 0 and γ_s = γ_t there is no covariate or noise shift. This tests whether the gain",
+        "is *shift-driven*, which is a weaker proposition than the paper asserts: by the rates above",
+        "it can fail while the method works exactly as claimed. It is published either way.",
         "", "\n".join(ctrl_rows) if ctrl_rows else "_control pending_",
+        "",
+        (v.get("control_choice") or ""),
+        "",
+        "The choice of which arm gates was registered in",
+        "[`repro/artifacts/c5_control_preregistration.md`](repro/artifacts/c5_control_preregistration.md)",
+        "while neither control had produced a number.",
         "", _transcription_block(a),
     ])
 

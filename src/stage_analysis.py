@@ -1115,9 +1115,28 @@ def claim5(results):
         for model in MODELS
     } if "30" in by_n else {}
 
-    # Negative control: the no-shift arm removes the covariate and noise shift,
-    # i.e. the very reason transductive calibration should help. If the gain did
-    # not shrink there, the reported gain would not be attributable to the method.
+    # PRIMARY negative control: m = n. Theorem 4.6 credits StCP's stability to the
+    # unlabeled sample being large -- O(m^-1 + {n(1+lambda)^2}^-1) against O(n^-1)
+    # -- and neither rate contains a shift term. Setting m = n removes exactly that
+    # advantage, so the gain must shrink. Registered in
+    # repro/artifacts/c5_control_preregistration.md before either control ran.
+    m_control = None
+    if "30" in by_n and "logabs-n30-m30" in results["sim"]:
+        tight = results["sim"]["logabs-n30-m30"]["models"]
+        m_control = {
+            model: {
+                "pct_at_m500": by_n["30"][model]["pct"],
+                "pct_at_m30": tight[model]["row"]["ours"]["std_improvement_pct"],
+            }
+            for model in MODELS
+        }
+        m_control["gain_shrinks_when_m_equals_n"] = all(
+            m_control[m]["pct_at_m30"] < m_control[m]["pct_at_m500"] for m in MODELS
+        )
+
+    # SECONDARY, reported but not gating: the no-shift arm tests whether the gain
+    # is shift-driven, which is a weaker proposition than the paper asserts. Kept
+    # because its outcome is informative about the framing.
     noshift = results.get("noshift")
     control = None
     if noshift and "30" in by_n:
@@ -1133,12 +1152,12 @@ def claim5(results):
         )
 
     integrity = {
-        # A control that cannot fail is not a control. Removing the covariate and
-        # noise shift removes the reason StCP helps, so the gain must shrink --
-        # if it does not, the measured gain is not attributable to the method and
-        # neither verdict would be supportable.
-        "no_shift_control_reduces_the_gain": bool(
-            control and control.get("gain_shrinks_without_shift")
+        # A control that cannot fail is not a control. m = n removes the quantity
+        # Theorem 4.6 credits for the stability gain, so the gain must shrink; if
+        # it does not, the measured gain is not attributable to the mechanism the
+        # claim names and neither verdict would be supportable.
+        "m_equals_n_control_reduces_the_gain": bool(
+            m_control and m_control.get("gain_shrinks_when_m_equals_n")
         ),
         "bootstrap_available_at_n30": bool(boots),
         # The n=100 > n=30 CQR reading is arithmetic on the printed table, so the
@@ -1192,7 +1211,16 @@ def claim5(results):
             "repeats can resolve it at all."),
         # string keys: JSON has no integer keys, and these are read back after a round-trip
         "published_cqr_pct_by_n": {str(n): P.TABLE2[n]["CQR"]["pct"]["ours"] for n in (30, 100, 500)},
+        "negative_control_m_equals_n": m_control,
         "negative_control_no_shift": control,
+        "control_choice": (
+            "The gating control is m = n, which removes the quantity Theorem 4.6 credits for the "
+            "stability gain (O(m^-1 + {n(1+lambda)^2}^-1) against O(n^-1); neither rate contains a "
+            "shift term). The no-shift arm is reported but does not gate, because 'the gain is "
+            "shift-driven' is a weaker proposition than the paper asserts and can fail while the "
+            "method works as claimed. Both arms are published whichever way they land; the choice "
+            "was registered in repro/artifacts/c5_control_preregistration.md while neither had "
+            "produced a number."),
     }
 
 
