@@ -121,14 +121,17 @@
     },
     "improvement_formula": "(base_std - value) / base_std * 100",
     "must_hold": [
-     "reproduced GLCP reduction at n=30 matches the published 31.2% within Monte-Carlo error",
-     "reproduced CQR reduction at n=30 matches the published 16.3% within Monte-Carlo error",
-     "the ordering across n in {30,100,500} is reproduced and reported honestly"
+     "the reproduced n=30 GLCP std reduction has a bootstrap CI covering the published 31.2%",
+     "the reproduced n=30 CQR std reduction has a bootstrap CI covering the published 16.3%",
+     "the no-shift control (r=0, gamma_s=gamma_t) reduces the gain for BOTH base methods",
+     "no rival calibration size is strictly larger than n=30 at 95% for the GLCP row"
     ],
     "adjudication": "The published CQR column is 16.3 / 16.7 / 6.3 for n = 30 / 100 / 500, so the 'largest gains at n=30' wording is exactly true for GLCP but off by 0.4 points for CQR. The verdict must state this rather than smooth it over.",
     "fails_if": "reproduced n=30 reductions differ from 31.2% / 16.3% by more than Monte-Carlo error"
    },
-   "negative_control": "A no-shift variant (gamma_s = gamma_t, mu_t = 0) should shrink the transfer gain, confirming the reduction is driven by the source information and not by the estimator's smoothing alone."
+   "negative_control": "Re-run with the covariate and noise shift removed (r=0, gamma_s=gamma_t), which removes the reason transductive calibration should help. The gain must shrink. This control is BINDING: an earlier revision computed it but omitted it from the verdict, so it could not fail anything.",
+   "vacuity_guard": "An ordering the 50 repeats cannot resolve is NOT a falsification. The published GLCP argmax is a fact about the table with no sampling error, so the reproduction can only contradict it; the check fails only when a rival n is strictly larger at 95%, never when the interval merely straddles zero.",
+   "paper_internal_inconsistency": "The claim states the largest gains occur at n=30, but the paper's own Table 2 CQR row gives 16.7% at n=100 against 16.3% at n=30. The qualifier therefore fails for CQR on the paper's own numbers, independent of any reproduction. The margin is 0.4 points, so the reproduction reports a bootstrap CI on the n=30 minus rival difference rather than asserting the ordering either way."
   },
   {
    "id": "C6",
