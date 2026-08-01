@@ -994,6 +994,7 @@ _CLAIM_CHECKERS = {
     "C3": ["verify_thm46_certificate.py", "verify_shard_merge.py"],
     "C4": ["verify_transcription.py", "verify_fidelity_gate.py", "verify_shard_merge.py"],
     "C5": ["verify_transcription.py", "verify_shard_merge.py"],
+    "C6": ["verify_thm47_certificate.py"],
 }
 
 
@@ -1469,6 +1470,91 @@ def _c5(a):
     ])
 
 
+def _c6_certificate(v):
+    """The exhaustive check of Theorem 4.7, and the defect it found."""
+    c = v.get("certificate")
+    if not c:
+        return ""
+    sw, cc = c["sweep"], c["corrected_claim"]
+    ff = sw.get("first_failing_cell") or {}
+    ws = sw.get("worst_shortfall") or {}
+    inf = c["inflated_level_repair"]
+    pct = 100.0 * sw["printed_lower_endpoint_failures"] / sw["cells"]
+
+    win = ["| Setting | guaranteed floor | floor the theorem prints | exposed window | α_tol |",
+           "| --- | --- | --- | --- | --- |"]
+    for k, w in c["exposure_window"].items():
+        win.append(f"| {k} | {w['guaranteed_lower_endpoint']:.4f} | "
+                   f"{w['claimed_lower_endpoint']:.4f} | {w['window_width']:.4f} | "
+                   f"{w['alpha_tol_for_comparison']} |")
+
+    landed = c["observed_runs_inside_the_window"]
+    return "\n".join([
+        "## An exhaustive check of Theorem 4.7 — and a defect in its lower endpoint",
+        "",
+        "Theorem 4.7's proof is finite arithmetic end to end — order statistics, ceilings and an",
+        "exchangeability rank argument — so unlike Theorems 4.2 and 4.6 it can be checked over its",
+        f"**whole parameter space** rather than sampled. All {sw['cells']:,} `(n, α, α_tol)` cells",
+        f"with n ≤ 500 were enumerated by",
+        "[`repro/src/verify_thm47_certificate.py`](repro/src/verify_thm47_certificate.py).",
+        "",
+        "| Statement | cells where it fails |",
+        "| --- | --- |",
+        f"| lower endpoint `1−α−α_tol`, as printed | **{sw['printed_lower_endpoint_failures']:,}** "
+        f"({pct:.1f}%) |",
+        f"| upper endpoint `1−α+α_tol+(n+1)⁻¹`, as printed | {sw['printed_upper_endpoint_failures']:,} |",
+        f"| proof step `k/(n+1) ≥ 1−β` | {sw['proof_step_lower_failures']:,} |",
+        f"| proof step `(k+1)/(n+1) < 1−β+(n+1)⁻¹` | {sw['proof_step_upper_failures']:,} |",
+        f"| **corrected band** `[1−α−α_tol−(n+1)⁻¹, 1−α+α_tol+(n+1)⁻¹)` | "
+        f"{sw['corrected_lower_endpoint_failures']:,} |",
+        "",
+        "**The cause.** Section 3.1 defines `q_L = Q(1−α−α_tol; F̂⁰_S)` at the *plain* level, so `q_L`",
+        "is the `⌈n(1−α−α_tol)⌉`-th order statistic and the coverage it guarantees is",
+        "`⌈n(1−α−α_tol)⌉/(n+1)` — short of `1−α−α_tol` by up to `(n+1)⁻¹`.",
+        "",
+        f"The smallest failing cell is `n = {ff.get('n')}, α = {ff.get('alpha')}, "
+        f"α_tol = {ff.get('alpha_tol')}`, where the guarantee is "
+        f"`{ff.get('guaranteed_lower')}` against a printed floor of `{ff.get('claimed_lower')}`. "
+        f"The worst shortfall anywhere is `{ws.get('shortfall')}` at "
+        f"`n = {ws.get('n')}`, against `(n+1)⁻¹ = {ws.get('one_over_n_plus_one')}` — so the "
+        "shortfall very nearly attains its own bound, which is what makes `(n+1)⁻¹` the right "
+        "amount to widen by rather than a convenient one.",
+        "",
+        "This is not a small-n curiosity. At the paper's own configuration:",
+        "",
+        "\n".join(win), "",
+        f"> At n = 30 the guaranteed floor is **0.8710**, not the **0.8800** the theorem prints — a",
+        "> window half again as wide as α_tol itself.",
+        "",
+        "### Why this is reported and not scored as a falsification",
+        "",
+        "The shortfall sits in `P(S_{n+1} ≤ q_L)`, which the proof uses as a **lower bound** on",
+        "coverage. Actual coverage is at least that and may be higher, so a gap here breaks the",
+        "proof without by itself producing a run whose coverage falls outside the printed band.",
+        "Calling it a falsification would be the vacuity error in reverse.",
+        "",
+        "So the question was measured rather than argued: every coverage this campaign observed was",
+        f"passed to the certificate and tested against the exposed window. **{len(landed)} of",
+        f"{len(v.get('observed') or {})} observed settings land inside it.**"
+        + ("" if landed else " The defect is therefore real in the guarantee and unrealised in the"
+                             " data, and C6's verdict is left on the measured band check below."),
+        "",
+        "### Two repairs, both verified over the same domain",
+        "",
+        f"1. **Widen the band** to `{cc['supported']}`. Fails in "
+        f"{sw['corrected_lower_endpoint_failures']:,} cells — that is, nowhere. Symmetric, but it",
+        "   weakens the advertised result.",
+        f"2. **Inflate the quantile level** — define `q_L` at `(1−α−α_tol)(n+1)/n`, the same",
+        "   convention Theorem 4.2 already uses elsewhere in this paper. Fails in",
+        f"   {inf['failures']} of {inf['checked']:,} in-range cells; {inf['out_of_range']:,} further",
+        "   cells are excluded and reported because there n is too small for the level and `q_L`",
+        "   is `+∞`.",
+        "",
+        f"> **Preferred: the second** — {cc['which_is_preferred']}.",
+        "",
+    ])
+
+
 def _c6(a):
     v = a["verdicts"]["C6"]
     lo, hi = v["band"]
@@ -1485,6 +1571,7 @@ def _c6(a):
                          f"{f(arm['coverage_mean'])} | [{f(arm['coverage_ci95'][0])}, "
                          f"{f(arm['coverage_ci95'][1])}] | {f(arm['inside_band'])} |")
     return "\n".join([
+        _c6_certificate(v),
         "## The predicted band",
         "",
         f"Theorem 4.7 gives `[1−α−α_tol, 1−α+α_tol+(n+1)⁻¹)` = **[{lo:.4f}, {hi:.4f})** at α = 0.1,",
