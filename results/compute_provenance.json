@@ -99,5 +99,17 @@
   "seconds": 3204.3,
   "cores": 2,
   "host": "darwin-arm64"
+ },
+ "real/crime-w2": {
+  "where": "local",
+  "seconds": 3018.1,
+  "cores": 2,
+  "host": "darwin-arm64"
+ },
+ "real/crime-w3": {
+  "where": "local",
+  "seconds": 3217.8,
+  "cores": 2,
+  "host": "darwin-arm64"
  }
 }
