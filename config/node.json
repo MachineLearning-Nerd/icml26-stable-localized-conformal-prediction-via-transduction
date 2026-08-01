@@ -1,6 +1,6 @@
 {
   "stage": "real",
-  "note": "Table 1 TISSUE column at the authors' committed defaults. Repeats [30,35); 5-repeat shard to fit the 1h job cap.",
+  "note": "Table 1 TISSUE column at the authors' committed defaults. Repeats [35,40); 5-repeat shard to fit the 1h job cap.",
   "dataset": "TISSUE",
   "script": "Tissue.py",
   "argv": [],
@@ -9,7 +9,7 @@
   "n_reported": 30,
   "n_over_m": "30/1000",
   "shard": [
-    30,
-    35
+    35,
+    40
   ]
 }
