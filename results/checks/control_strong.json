@@ -1,0 +1,110 @@
+{
+ "kind": "control_exchangeability",
+ "dtype": "logabs",
+ "n": 30,
+ "m": 500,
+ "reps": 20,
+ "band": {
+  "lo": 0.88,
+  "hi": 0.952258064516129,
+  "formula": "[1-a-a_tol, 1-a+a_tol+1/(n+1)) at a=0.1, a_tol=0.02, n=30"
+ },
+ "seconds": 4721.3,
+ "arms": [
+  {
+   "arm": "strong_violation",
+   "exchangeable": false,
+   "calibration_distribution": "target covariates with calibration noise scale gamma=0.2 against test gamma=1.0",
+   "repeats": 20,
+   "coverage_per_repeat": [
+    0.9344359066408012,
+    0.921280514901078,
+    0.8238505718449801,
+    0.7905418056431844,
+    0.900499311961483,
+    0.8038513933859402,
+    0.8712556847143874,
+    0.7343093870595847,
+    0.7375581919837836,
+    0.6887344027460676,
+    0.8506478875882304,
+    0.7628506710653405,
+    0.6867939848277722,
+    0.7154983643766318,
+    0.9129083317178002,
+    0.8140998981735245,
+    0.8310223178873575,
+    0.6395054801284248,
+    0.6851253561866976,
+    0.7328408353219947
+   ],
+   "coverage_mean": 0.7918805149077532,
+   "coverage_stderr": 0.019813888649084305,
+   "coverage_ci95": [
+    0.753045293155548,
+    0.8307157366599585
+   ],
+   "selected_lambda_idx": [
+    18,
+    13,
+    11,
+    7,
+    9,
+    18,
+    1,
+    7,
+    9,
+    4,
+    10,
+    9,
+    5,
+    5,
+    9,
+    6,
+    10,
+    5,
+    4,
+    2
+   ],
+   "band": [
+    0.88,
+    0.952258064516129
+   ],
+   "inside_band": false
+  }
+ ],
+ "control_is_informative": false,
+ "violations_that_left_the_band": [
+  "strong_violation"
+ ],
+ "paper_shift_leaves_band": false,
+ "interpretation": "NOT informative: no exchangeability violation tried here leaves the band, so an in-band observation is weak evidence at these parameters",
+ "wall_seconds": 4778.78,
+ "environment": {
+  "git_sha": "f9e406f4007c27e9325fd8b6c3eac309e5dffd71",
+  "python": "3.12.11",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "os_cpu_count": 8,
+  "cgroup_cpu_quota": 8,
+  "threads_pinned": 2,
+  "numpy": "2.5.1",
+  "scipy": "1.18.0",
+  "torch": "2.13.0",
+  "torch_num_threads": 2,
+  "upstream_sha": "1d8df7614d49eada881426742688ba75fec631b9",
+  "node_config": {
+   "stage": "control",
+   "note": "Claim 6 control ladder, third rung. The paper's own source/target shift did not leave the Theorem 4.7 band; this arm keeps target covariates but shrinks the calibration noise scale so calibration scores are systematically smaller than test scores.",
+   "dtype": "logabs",
+   "n": 30,
+   "m": 500,
+   "testN": 500,
+   "reps": 20,
+   "arms": [
+    "strong_violation"
+   ],
+   "gamma_strong": 0.2,
+   "out_name": "control_strong"
+  }
+ }
+}

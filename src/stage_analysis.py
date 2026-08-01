@@ -81,10 +81,19 @@ def _load_sim_sum_tab(upstream_root):
     Loaded by file path, never by module name: `RealAnalysis/sum_tab.py` has the
     same name, has no `__main__` guard, and opens five result pickles on import.
     """
-    path = os.path.join(upstream_root, "SimuAnalysis", "sum_tab.py")
+    simu = os.path.join(upstream_root, "SimuAnalysis")
+    path = os.path.join(simu, "sum_tab.py")
     spec = importlib.util.spec_from_file_location("stcp_simu_sum_tab", path)
     mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    # `sum_tab` does `import config`, which is its own sibling. The path is added
+    # only for the exec and then removed: leaving `SimuAnalysis` on sys.path would
+    # put a second `sum_tab` in front of the import system for the rest of the
+    # process, which is the collision this loader exists to avoid.
+    sys.path.insert(0, simu)
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        sys.path.remove(simu)
     return mod
 
 

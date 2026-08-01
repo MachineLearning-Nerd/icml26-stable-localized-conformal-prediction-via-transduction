@@ -1,0 +1,226 @@
+{
+ "what": "Each Table 1 script run up to, but not into, its expensive procedure_* call.",
+ "why": "STAR/DERMA/TISSUE had never executed; this checks the artifact ships what they read, and that the STAR source patch reconstructs the authors' own configuration.",
+ "star_cross_check": "The authors' committed STAR result file is named P_60_1048_2446_10_1_1. The patched loader yields n=60, m=1048, N=2446, d=10, targ_g=1, targ_ind=1.",
+ "probes": [
+  {
+   "branch": "real/crime-w0",
+   "status": "LOADS",
+   "patched": false,
+   "about_to_call": {
+    "n_grids": [
+     50
+    ],
+    "lbds": [
+     0.0,
+     0.001,
+     0.002,
+     0.003,
+     0.004,
+     0.005,
+     0.006,
+     0.007,
+     0.008,
+     0.009,
+     0.01,
+     0.02
+    ],
+    "temperatures": [
+     10.0
+    ],
+    "repeats": 50,
+    "testN": 100,
+    "m": 500,
+    "n": 60,
+    "N": 1334,
+    "d": 15,
+    "hidden_dim": [
+     50,
+     100,
+     100,
+     50
+    ],
+    "noise_dim": 15,
+    "epoches": 100,
+    "alpha": 0.1,
+    "agent_target_n": 660,
+    "agent_target_X_shape": [
+     660,
+     15
+    ],
+    "agent_aux_n": 1334,
+    "agent_aux_X_shape": [
+     1334,
+     15
+    ],
+    "predmethod": "rf",
+    "model_path": null
+   }
+  },
+  {
+   "branch": "real/star-w0",
+   "status": "LOADS",
+   "patched": true,
+   "about_to_call": {
+    "n_grids": [
+     50
+    ],
+    "lbds": [
+     0.0,
+     0.002,
+     0.005,
+     0.0075,
+     0.01,
+     0.02,
+     0.05,
+     0.075,
+     0.1,
+     0.12,
+     0.15
+    ],
+    "temperatures": [
+     10.0
+    ],
+    "repeats": 50,
+    "testN": 200,
+    "m": "1048",
+    "n": 60,
+    "N": "2446",
+    "d": 10,
+    "hidden_dim": [
+     50,
+     100,
+     100,
+     50
+    ],
+    "noise_dim": 10,
+    "epoches": 100,
+    "alpha": 0.1,
+    "agent_target_n": 1308,
+    "agent_target_X_shape": [
+     1308,
+     10
+    ],
+    "agent_aux_n": 2446,
+    "agent_aux_X_shape": [
+     2446,
+     10
+    ],
+    "predmethod": "rf",
+    "model_path": null
+   }
+  },
+  {
+   "branch": "real/derma-w0",
+   "status": "LOADS",
+   "patched": false,
+   "about_to_call": {
+    "n_grids": [
+     50
+    ],
+    "lbds": [
+     0.0,
+     0.005,
+     0.01,
+     0.02,
+     0.03,
+     0.04,
+     0.05
+    ],
+    "temperatures": [
+     10.0
+    ],
+    "repeats": 50,
+    "testN": 500,
+    "m": 1000,
+    "n": 30,
+    "N": 2000,
+    "d": 10,
+    "typeNum": 7,
+    "hidden_dim": [
+     50,
+     100,
+     100,
+     50
+    ],
+    "noise_dim": 10,
+    "epoches": 50,
+    "alpha": 0.1,
+    "agent_target_n": 1530,
+    "agent_target_X_shape": [
+     1530,
+     28,
+     28,
+     3
+    ],
+    "agent_aux_n": 5477,
+    "agent_aux_X_shape": [
+     5477,
+     28,
+     28,
+     3
+    ],
+    "predmethod": null,
+    "model_path": "Para/DermaMNIST.pth"
+   }
+  },
+  {
+   "branch": "real/tissue-w0",
+   "status": "LOADS",
+   "patched": false,
+   "about_to_call": {
+    "n_grids": [
+     50
+    ],
+    "lbds": [
+     0.0,
+     0.01,
+     0.03,
+     0.05,
+     0.075,
+     0.1,
+     0.15,
+     0.2,
+     0.3,
+     0.4,
+     0.5
+    ],
+    "temperatures": [
+     10.0
+    ],
+    "repeats": 50,
+    "testN": 500,
+    "m": 1000,
+    "n": 30,
+    "N": 2000,
+    "d": 10,
+    "typeNum": 8,
+    "hidden_dim": [
+     50,
+     100,
+     100,
+     50
+    ],
+    "noise_dim": 10,
+    "epoches": 50,
+    "alpha": 0.1,
+    "agent_target_n": 1530,
+    "agent_target_X_shape": [
+     1530,
+     28,
+     28,
+     1
+    ],
+    "agent_aux_n": 22110,
+    "agent_aux_X_shape": [
+     22110,
+     28,
+     28,
+     1
+    ],
+    "predmethod": null,
+    "model_path": "Para/TissueMNIST.pth"
+   }
+  }
+ ]
+}

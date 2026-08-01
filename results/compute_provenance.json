@@ -87,5 +87,11 @@
   "seconds": 1513.0,
   "cores": 2,
   "host": "darwin-arm64"
+ },
+ "real/crime-w0": {
+  "where": "local",
+  "seconds": 3075.0,
+  "cores": 2,
+  "host": "darwin-arm64"
  }
 }
