@@ -842,6 +842,14 @@ def _control_of(v):
         "reproduces_published_table_cell_by_cell": "measured Std + coverage vs the printed table",
         "unlabeled_sample_is_not_decorative": "same-sample refit floor",
         "slope_interval_is_bootstrapped_not_assumed": "bootstrapped slope vs the assumed rate",
+        # C4's verdict rides on the printed table, so its controls are the ones
+        # that show that route can return the other answer: the CQR band is
+        # evaluated by the same code and comes back clean, and moving the
+        # violating cell inside its band clears the violation.
+        "published_percentages_are_the_paper_formula":
+            "CQR band holds on the same code; mutating TISSUE into the band clears it",
+        "violation_survives_the_printed_rounding":
+            "rounding-interval bound on the violating cell",
     }
     if "control_makes_the_band_informative" in integ:
         arms = (v.get("negative_control") or {}).get("violations_that_left_the_band") or []
