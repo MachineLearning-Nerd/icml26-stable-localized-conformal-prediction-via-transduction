@@ -69,6 +69,13 @@ def main():
     ).strip()
     env["node_config"] = cfg
     emit("ENVIRONMENT", env)
+    # `make_pages` reads the pinned environment from disk, not from the job log, so
+    # it has to land there too: without this the published claim pages report the
+    # Git SHA, Python and library versions as `None`, which is exactly the
+    # provenance the evidence gate requires them to show.
+    os.makedirs(os.path.join(ROOT, "results"), exist_ok=True)
+    with open(os.path.join(ROOT, "results", "environment.json"), "w") as fh:
+        json.dump(env, fh, indent=1)
 
     stage = cfg["stage"]
     mod = __import__(f"stage_{stage}")

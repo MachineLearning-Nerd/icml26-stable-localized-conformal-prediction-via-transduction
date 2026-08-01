@@ -883,13 +883,28 @@ def _c5(a):
             e = v["by_n"][n][model]
             rows.append(f"| {n} | {f(e['std_base'])} | {f(e['std_ours'])} | "
                         f"{f(e['pct'], 1)} | {f(e['pct_published'], 1)} |")
-    boot = ["| Base | bootstrap mean % | 95% CI | published target | target inside CI |",
-            "| --- | --- | --- | --- | --- |"]
+    boot = ["| Base | bootstrap mean % | 95% CI | CI width | span across n | published target "
+            "| target inside CI | counted |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+    power = v.get("target_test_power") or {}
+    dropped = v.get("checks_not_run_for_lack_of_resolution") or {}
     for model, b in v.get("bootstrap_at_n30", {}).items():
         t = 31.2 if model == "GLCP" else 16.3
         inside = b["ci95_pct"][0] <= t <= b["ci95_pct"][1]
+        p = power.get(model) or {}
+        counted = bool(p.get("can_resolve_the_span", True))
         boot.append(f"| {model} | {f(b['bootstrap_mean_pct'], 1)} | "
-                    f"[{f(b['ci95_pct'][0], 1)}, {f(b['ci95_pct'][1], 1)}] | {t} | {f(inside)} |")
+                    f"[{f(b['ci95_pct'][0], 1)}, {f(b['ci95_pct'][1], 1)}] | "
+                    f"{f(p.get('ci_width_pct'), 1)} | {f(p.get('published_span_across_n_pct'), 1)} | "
+                    f"{t} | {f(inside)} | {f(counted)} |")
+    if dropped:
+        boot += ["",
+                 "**Not every row above is counted.** An interval wider than the spread of the",
+                 "published percentages across n would have contained the target whatever the",
+                 "reproduction produced, so it cannot be evidence that the target was hit. Those",
+                 "checks are dropped rather than passed, and dropping is not passing:", ""]
+        for name, why in sorted(dropped.items()):
+            boot.append(f"- `{name}` — {why}")
     ctrl = v.get("negative_control_no_shift")
     ctrl_rows = []
     if ctrl:
@@ -908,7 +923,9 @@ def _c5(a):
         "",
         "Bootstrap over the 50 repeats (base and StCP resampled together, since they share repeats).",
         "", "\n".join(boot), "",
-        f"Largest gain at n = 30: {v['largest_gain_at_n30']}",
+        "In this reproduction, the largest gain occurs at n = 30 for: "
+        + (", ".join(f"**{m}** ({f(hit)})" for m, hit in v["largest_gain_at_n30"].items())
+           or "— (n = 30 not available)"),
         "",
         "The claim says the largest gains occur at n = 30. In the **paper's own** CQR column the",
         f"values are {v['published_cqr_pct_by_n']['30']} / {v['published_cqr_pct_by_n']['100']} / "

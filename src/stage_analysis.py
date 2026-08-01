@@ -1004,12 +1004,27 @@ def claim5(results):
             lam = results["sim"]["logabs-n30-m500"]["models"][model]["selected_lambda_index"]
             boots[model] = _boot_pct_sim(parts, mi, lam)
 
-    target_hit = {}
+    # "The published value lies inside our interval" is only evidence when the
+    # interval is narrower than the differences it is meant to resolve. The
+    # yardstick is taken from the table rather than chosen: the published `ours`
+    # percentages span 8.0 points across n for GLCP and 10.4 for CQR, and those are
+    # the differences this claim is about, so an interval wider than that span
+    # would have accepted any of the three settings' values equally.
+    target_hit, target_power = {}, {}
     for model in MODELS:
-        if model in boots:
-            t = P.CLAIM5_TARGETS[model]
-            ci = boots[model]["ci95_pct"]
-            target_hit[model] = bool(ci[0] <= t <= ci[1])
+        if model not in boots:
+            continue
+        t = P.CLAIM5_TARGETS[model]
+        ci = boots[model]["ci95_pct"]
+        target_hit[model] = bool(ci[0] <= t <= ci[1])
+        pub_n = [P.TABLE2[n][model]["pct"]["ours"] for n in (30, 100, 500)]
+        span = float(max(pub_n) - min(pub_n))
+        width = float(ci[1] - ci[0])
+        target_power[model] = {
+            "ci_width_pct": width,
+            "published_span_across_n_pct": span,
+            "can_resolve_the_span": bool(width < span),
+        }
 
     # ---- the claim's other half: "the largest gains occur at n=30" ----------
     # Adjudicated against BOTH the paper's own Table 2 and this reproduction. The
@@ -1095,9 +1110,26 @@ def claim5(results):
         # printed table must provably be the paper's.
         "published_table_matches_the_paper_text": _transcription_ok(),
     }
-    checks = {
-        "n30_glcp_matches_31_2_within_ci": target_hit.get("GLCP", False),
-        "n30_cqr_matches_16_3_within_ci": target_hit.get("CQR", False),
+    # A target check is only run when its interval is narrow enough to have failed.
+    # Dropping it is not the same as passing it: the omission is named in
+    # `checks_not_run_for_lack_of_resolution` and stated on the claim page. This is
+    # scoped per model rather than blocking the claim, matching how Claim 4 treats
+    # `claimed_bands_cover_every_reproduced_cell` -- the reproduction is supporting
+    # evidence here, and the claim's own Table 2 ordering is exact arithmetic that
+    # needs no precision from it.
+    dropped = {}
+    checks = {}
+    for model, name in (("GLCP", "n30_glcp_matches_31_2_within_ci"),
+                        ("CQR", "n30_cqr_matches_16_3_within_ci")):
+        power = target_power.get(model)
+        if power and not power["can_resolve_the_span"]:
+            dropped[name] = (
+                f"bootstrap interval is {power['ci_width_pct']:.1f} points wide against a "
+                f"{power['published_span_across_n_pct']:.1f}-point spread across n, so it "
+                f"could not have failed")
+            continue
+        checks[name] = target_hit.get(model, False)
+    checks.update({
         # The published GLCP row peaks at n=30, which is a fact about the table and
         # carries no sampling error. The reproduction can only *contradict* it, so
         # an ordering the repeats cannot resolve is not counted as a failure --
@@ -1106,13 +1138,15 @@ def claim5(results):
             ordering.get("GLCP", {}).get("published_supports_n30")
             and not ordering.get("GLCP", {}).get("rival_strictly_larger_at_95pct", False)
         ),
-    }
+    })
     return {
         **_adjudicate(checks, integrity),
         "checks": checks,
         "integrity": integrity,
         "by_n": by_n,
         "bootstrap_at_n30": boots,
+        "target_test_power": target_power,
+        "checks_not_run_for_lack_of_resolution": dropped,
         "largest_gain_at_n30": largest_at_30,
         "largest_gain_ordering": ordering,
         "bootstrap_pct_by_n": {f"{m}@{n}": v for (m, n), v in all_boots.items()},
