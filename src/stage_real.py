@@ -16,11 +16,13 @@ base/SDCP/PPI whose marginal coverage is in range (`RealAnalysis/sum_tab.py:61`,
 Appendix C.1) -- NOT the plain ratio used by Table 2.
 """
 
+import collections
 import json
 import os
 import subprocess
 import sys
 import time
+import types
 
 import numpy as np
 
@@ -61,7 +63,6 @@ def load_sum_tab(upstream_root):
     the authors' and nothing is paraphrased.
     """
     import ast
-    import types
 
     path = os.path.join(upstream_root, "RealAnalysis", "sum_tab.py")
     with open(path) as fh:
@@ -122,6 +123,29 @@ def _summarise(res_dict, sum_tab, n_reported):
         }
         out[model] = table
     return out
+
+
+def _run_streaming(cmd, cwd, env, tail_lines=400):
+    """Run the entry script, echoing its output to this job's log as it arrives.
+
+    Capturing the output instead would make the run opaque from outside: the
+    authors' `procedure.py` logs to a file inside the container, so the injected
+    per-repeat progress line is the only external signal that a job is alive --
+    and if the job is killed at the timeout, a captured buffer is lost entirely
+    while streamed lines are already in the log.
+    """
+    proc = subprocess.Popen(
+        cmd, cwd=cwd, env=env, text=True, bufsize=1,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    tail = collections.deque(maxlen=tail_lines)
+    for line in proc.stdout:
+        tail.append(line)
+        print("    | " + line.rstrip(), flush=True)
+    proc.wait()
+    return types.SimpleNamespace(
+        returncode=proc.returncode, stdout="".join(tail), stderr=""
+    )
 
 
 def _apply_source_patches(upstream_root, script, patches):
@@ -198,7 +222,7 @@ def run(cfg, upstream_root):
 
     cmd = [sys.executable, "-u", os.path.join("RealAnalysis", entry)] + argv
     t0 = time.time()
-    proc = subprocess.run(cmd, cwd=upstream_root, capture_output=True, text=True, env=env)
+    proc = _run_streaming(cmd, upstream_root, env)
     seconds = time.time() - t0
     if proc.returncode != 0:
         return {
