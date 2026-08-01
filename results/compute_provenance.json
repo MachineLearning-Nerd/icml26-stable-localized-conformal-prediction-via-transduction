@@ -380,5 +380,53 @@
   "job_id": "6a6e2ae1a00abefd4b28bb90",
   "flavor": "cpu-upgrade",
   "minutes_since_launch_at_detection": 15.1
+ },
+ "sim/logabs-n100-m500-w0": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e2be9a00abefd4b28bb9a",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 26.1
+ },
+ "sim/logabs-n100-m500-w1": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e2c706b79c09949c1e7af",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 28.1
+ },
+ "sim/logabs-n100-m500-w3": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e2cf36b79c09949c1e7b9",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 25.9
+ },
+ "sim/logabs-n100-m500-w5": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e2d7aa00abefd4b28bbc5",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 23.7
+ },
+ "sim/logabs-n100-m500-w2": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e2c70a00abefd4b28bba5",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 30.4
+ },
+ "sim/logabs-n100-m500-w4": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e2d796b79c09949c1e7c1",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 26.0
+ },
+ "sim/logabs-n100-m500-w7": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e2efe6b79c09949c1e7d7",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 21.7
+ },
+ "sim/logabs-n100-m500-w6": {
+  "where": "hf-cpu-upgrade",
+  "job_id": "6a6e2e7ba00abefd4b28bbd1",
+  "flavor": "cpu-upgrade",
+  "minutes_since_launch_at_detection": 26.1
  }
 }
