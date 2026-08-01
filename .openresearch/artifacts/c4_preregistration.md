@@ -87,6 +87,52 @@ except the specific discontinuity it excuses. Concretely, registered now:
 - The percentage-disagreement count is published whatever it is. A cell is never
   described as agreeing because its reference flipped.
 
+## Addendum, same day, after running the registered rule on BIO
+
+The rule above was applied unchanged to BIO, the one dataset complete when it was
+written. Two things came out of it, and neither relaxes anything:
+
+**1. The Std test turned out to be too coarse to mean anything.** It reported
+"0 disagreements" — but the median bootstrap interval on a reproduced Std is
+0.1362 wide for BIO/CQR against a spread of only 0.0300 between the three
+published baselines, and 0.2468 against 0.1300 for BIO/GLCP. An interval that
+cannot tell `base` from `SDCP` from `PPI` cannot certify agreement with any of
+them: that "pass" was vacuous. A `std_gate_is_informative` requirement was
+therefore added, and it **fails**. This makes the precondition harder, not
+easier, which is the only direction a rule may move after seeing data.
+
+The underlying fact is a finding in its own right: **Table 1's Std column is
+printed to a precision that 50 repeats do not determine.** The standard
+deviation of a per-repeat mean, estimated from 50 repeats, simply is not pinned
+down to the three significant figures the table reports.
+
+**2. Marginal coverage does not reproduce for the tuner-based methods.**
+`base`, `SDCP`, `PPI` and `oracle` reproduce to within about 0.006. Every method
+that goes through the tuner is systematically low: BIO/GLCP `ours` reproduces
+0.9086 against a published 0.930 (CI [0.8985, 0.9192]), `ours-sel` 0.9092
+against 0.921, DP 0.9421 against 0.956.
+
+This is not a λ-selection artifact. Sweeping the authors' entire committed grid
+`[0, 0.002, 0.005, 0.0075, 0.01, 0.02, 0.03, 0.05]` (run with `argv: []`, so the
+defaults), marginal coverage rises monotonically from 0.9018 to a **maximum of
+0.9124** — the published 0.930 is unreachable at every λ. Nor is it an
+infinite-set accounting difference: the real-data path computes coverage
+directly from the interval endpoints and has no such branch. The published
+(Std 0.370, marginal 0.930) point does not lie on the reproduced trade-off
+curve at all: at the matching Std the reproduction gives 0.9086, and the λ that
+does best on coverage reaches only 0.9124 while undercutting the published Std.
+
+The transcription of those marginal cells was itself in doubt, since nothing had
+ever checked it, so `verify_transcription.py` was extended to cover every Table 1
+marginal cell and mutation-tested. It passes: the paper does print 0.930.
+
+**Consequence, per the rule above: `marginals_agree` is false, so Claim 4 is
+BLOCKED.** I said there would be no fallback rule and there is none. The
+paper-internal result that TISSUE/GLCP is printed at 13.5% against a claimed
+floor of 20% is still reported, and still rests only on the machine-verified
+transcription — but it is reported as a finding and **not** scored, because the
+precondition it was registered behind did not hold.
+
 ## Disclosure
 
 This restructuring was decided **after** seeing BIO/CQR fail the previous

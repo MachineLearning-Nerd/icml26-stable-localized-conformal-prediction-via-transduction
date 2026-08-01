@@ -838,9 +838,37 @@ def claim4(results):
                     marg_fail[cell] = {"published": r_["marginal_published"],
                                        "reproduced": r_["marginal_reproduced"],
                                        "ci95": r_["marginal_ci95"]}
+    # How much resolution does the Std comparison actually have? A Std estimated
+    # from 50 repeats has a wide bootstrap interval, and an interval wider than the
+    # differences it is meant to detect would pass for any reproduction at all. The
+    # yardstick is taken from the data rather than chosen: within a cell, the gate
+    # must at least be able to tell the three baselines apart from each other,
+    # since those are the quantities whose ordering the paper's own table depends
+    # on. Where it cannot, "the Std agrees" is not evidence that it does.
+    resolution = {}
+    for ds, v in per_dataset.items():
+        if not v.get("models"):
+            continue
+        for m in MODELS:
+            rows_ = v["models"][m]["rows"]
+            pub = [rows_[b]["std_published"] for b in ("base", "SDCP", "PPI")]
+            spread = float(max(pub) - min(pub))
+            widths_ = [rows_[meth]["std_ci95"][1] - rows_[meth]["std_ci95"][0]
+                       for meth in FIDELITY_METHODS if rows_[meth].get("std_ci95")]
+            if not widths_:
+                continue
+            med = float(np.median(widths_))
+            resolution[f"{ds}/{m}"] = {
+                "median_std_ci_width": med,
+                "published_baseline_spread": spread,
+                "can_distinguish_the_baselines": bool(med < spread),
+            }
+    coarse = [k for k, r in resolution.items() if not r["can_distinguish_the_baselines"]]
+    std_gate_is_informative = bool(resolution and not coarse)
+
     stds_agree = bool(ran_all and not std_fail and not missing_ci)
     marginals_agree = bool(ran_all and not marg_fail and not missing_ci)
-    reproduces = bool(ran_all and stds_agree and marginals_agree)
+    reproduces = bool(ran_all and stds_agree and marginals_agree and std_gate_is_informative)
     bands_hold = not viol["reproduced_glcp"] and not viol["reproduced_cqr"]
 
     integrity = {
@@ -897,6 +925,15 @@ def claim4(results):
             "rule": ("The published value must lie inside the 95% bootstrap interval of the "
                      "reproduced value, resampling the 50 repeats. Parameter-free: there is no "
                      "tolerance to choose and none to tune."),
+            "std_gate_is_informative": std_gate_is_informative,
+            "cells_where_the_std_gate_is_too_coarse": coarse,
+            "resolution": resolution,
+            "resolution_note": (
+                "A Std estimated from 50 repeats has a wide bootstrap interval, so passing this "
+                "gate is weaker evidence than passing the marginal-coverage one. The interval "
+                "must at minimum be narrower than the spread between the three published "
+                "baselines in the same cell -- otherwise it could not tell those baselines "
+                "apart, and agreement with any one of them would carry no information."),
         },
         "cell_agreement": {"agree": agree, "disagree": disagree,
                            "power": agreement_power,
