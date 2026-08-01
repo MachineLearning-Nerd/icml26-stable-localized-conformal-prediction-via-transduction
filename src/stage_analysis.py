@@ -986,6 +986,9 @@ def claim4(results):
         "published_glcp_pct_by_dataset": pub_glcp,
         "published_cqr_pct_by_dataset": pub_cqr,
         "printed_table_route": band,
+        # What the table does support. A falsification is more useful with the
+        # corrected number attached than without it.
+        "corrected_claim": C4B.corrected_claim(),
         # Reported, not gating. The reproduction disagreeing with Table 1 is a
         # result about the paper's reproducibility -- and a substantial one -- but
         # it is not a precondition for arithmetic on the printed cells, so it must

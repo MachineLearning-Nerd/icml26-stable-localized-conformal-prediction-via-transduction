@@ -22,8 +22,15 @@ checked here rather than assumed:
      bounded over that interval, and the violation must survive its most
      favourable corner.
 
+Having convicted the claim, this also derives the statement Table 1 *does*
+support, so the finding is a correction rather than only a rejection. Both
+available repairs are reported -- widen the band, or narrow the quantifier --
+because they are not equivalent and the choice between them is a judgement a
+reader should see made explicitly.
+
 Run: python src/verify_claim4_band.py   (exits nonzero if the falsification
-does not hold, or if any of the three supports fails)
+does not hold, if any of the three supports fails, or if the repaired band does
+not cover the cells it is derived from)
 """
 
 import os
@@ -188,6 +195,75 @@ def check_test_can_pass_and_fail(fails):
         fails.append("the mutation control did not clear the violation")
 
 
+def corrected_claim():
+    """The statement the paper's own Table 1 does support.
+
+    A falsification that stops at "false" leaves the reader without the thing
+    they actually want, which is the corrected number. Two repairs are possible
+    and they are not equivalent, so both are derived and named:
+
+      * **Widen the band** to the range the printed cells actually span. This
+        keeps the claim's "across five datasets" quantifier intact and changes
+        only the endpoint that is wrong.
+      * **Narrow the scope** to the datasets on which the stated band does hold,
+        keeping 20-48% and dropping the quantifier to four of five.
+
+    The first is the smaller edit and preserves the claim's own scope, so it is
+    reported as the repair; the second is reported alongside it because it is
+    what a reader comparing against the abstract would otherwise reconstruct.
+
+    Endpoints are the printed values. The rounding intervals are *not* used to
+    widen them: on cells whose Stds are small (DERMA/CQR's are 0.15 and 0.09)
+    two-decimal rounding admits a range so wide that a rounding-robust band
+    would be vacuous. That asymmetry is deliberate -- rounding has to be
+    accounted for when convicting the claim, not when restating it.
+    """
+    out = {}
+    for bt in BASE_TYPES:
+        pcts = {ds: P.TABLE1[ds][bt]["pct"]["ours"] for ds in DATASETS}
+        lo_ds = min(pcts, key=pcts.get)
+        hi_ds = max(pcts, key=pcts.get)
+        stated_lo, stated_hi = BANDS[bt]
+        inside = [ds for ds, v in pcts.items()
+                  if stated_lo - SLACK <= v <= stated_hi + SLACK]
+        out[bt] = {
+            "stated_band": [stated_lo, stated_hi],
+            "supported_band": [pcts[lo_ds], pcts[hi_ds]],
+            "binding_cells": {"low": lo_ds, "high": hi_ds},
+            "per_dataset": pcts,
+            "needs_repair": sorted(set(DATASETS) - set(inside)),
+            "datasets_where_stated_band_holds": sorted(inside),
+            "lower_endpoint_moves": round(pcts[lo_ds] - stated_lo, 1),
+            "upper_endpoint_moves": round(pcts[hi_ds] - stated_hi, 1),
+        }
+    return out
+
+
+def check_corrected_claim(fails):
+    """The repaired band must cover every cell, and must not be vacuously wide."""
+    corr = corrected_claim()
+    print("\nThe statement Table 1 does support:")
+    for bt, c in corr.items():
+        lo, hi = c["supported_band"]
+        slo, shi = c["stated_band"]
+        covers = all(lo <= v <= hi for v in c["per_dataset"].values())
+        print(f"  {bt}-type: {lo:.1f}-{hi:.1f}%  (stated {slo:.0f}-{shi:.0f}%; "
+              f"low endpoint moves {c['lower_endpoint_moves']:+.1f}, "
+              f"high {c['upper_endpoint_moves']:+.1f})")
+        print(f"      binding cells: {c['binding_cells']['low']} at the bottom, "
+              f"{c['binding_cells']['high']} at the top")
+        if not covers:
+            fails.append(f"the repaired {bt} band does not cover its own cells")
+        # min..max over the cells is the tightest interval containing them, so
+        # tightness is structural; what must be checked is that it still says
+        # something -- a band as wide as [0, 100] would "hold" and mean nothing.
+        if hi - lo >= 100.0:
+            fails.append(f"the repaired {bt} band spans {hi - lo:.0f} points and is vacuous")
+        if not c["needs_repair"]:
+            print(f"      -> no repair needed; the stated band already holds")
+    return corr
+
+
 def supports():
     """The preconditions the printed-table route actually needs, as data.
 
@@ -239,6 +315,7 @@ def main():
     violations = check_bands(fails)
     check_rounding_robust(violations, fails)
     check_test_can_pass_and_fail(fails)
+    corr = check_corrected_claim(fails)
 
     glcp_bad = violations.get("GLCP", [])
     cqr_bad = violations.get("CQR", [])

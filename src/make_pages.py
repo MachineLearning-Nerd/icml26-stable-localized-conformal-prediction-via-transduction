@@ -877,6 +877,44 @@ def _c4_findings(v):
                    + "; ".join(parts) + ".")
     done_txt = ("All five real datasets were run" if repro.get("all_five_datasets_ran")
                 else f"{len(ran)} of the five real datasets have so far been run")
+    corr = v.get("corrected_claim") or {}
+    if corr:
+        out += ["", "### The statement Table 1 does support", "",
+                "The claim is wrong in one endpoint, not in substance — StCP does reduce "
+                "set-size variability on every dataset, by a wide margin on most. Replacing "
+                "the GLCP floor with the value the table actually reaches gives a statement "
+                "that holds on all five datasets:", "",
+                "| Base method | Claim as stated | Supported by Table 1 | Binding cells |",
+                "| --- | --- | --- | --- |"]
+        for bt in ("GLCP", "CQR"):
+            c = corr.get(bt)
+            if not c:
+                continue
+            slo, shi = c["stated_band"]
+            lo, hi = c["supported_band"]
+            ok = not c["needs_repair"]
+            out.append(
+                f"| {bt}-type | {slo:.0f}–{shi:.0f}% | "
+                f"{'**' if not ok else ''}{f(lo, 1)}–{f(hi, 1)}%{'**' if not ok else ''}"
+                f"{' — holds as stated' if ok else ''} | "
+                f"{c['binding_cells']['low']} (low), {c['binding_cells']['high']} (high) |")
+        g = corr.get("GLCP") or {}
+        if g.get("needs_repair"):
+            held = g["datasets_where_stated_band_holds"]
+            out += ["",
+                    f"Only the GLCP lower endpoint moves, by "
+                    f"{abs(g['lower_endpoint_moves']):.1f} points; the upper endpoint "
+                    f"({g['stated_band'][1]:.0f}%) is right, being STAR's "
+                    f"{f(g['per_dataset']['STAR'], 1)}%. The CQR half needs no repair at all.",
+                    "",
+                    f"A second repair is possible and is worth naming because a reader may "
+                    f"reconstruct it instead: the stated {g['stated_band'][0]:.0f}–"
+                    f"{g['stated_band'][1]:.0f}% is true if the claim's scope narrows from "
+                    f"five datasets to the {len(held)} it holds on "
+                    f"({', '.join(held)}). Widening the band is the smaller edit and keeps "
+                    f"the paper's own \"across five datasets\" quantifier, so it is the one "
+                    f"reported above; narrowing the scope silently drops the hardest dataset, "
+                    f"which is where a stability method is most worth measuring.", ""]
     out += ["",
             "### A separate finding: the printed table does not reproduce", "",
             f"Independently of the verdict, {done_txt} end to end at the "
