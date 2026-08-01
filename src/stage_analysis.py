@@ -946,6 +946,36 @@ def _cov_ci(per_repeat, label, model_idx, n_boot=BOOT):
     return [float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))]
 
 
+def _merge_controls(results):
+    """Pool the Theorem 4.7 control arms across however many nodes produced them.
+
+    Re-derives `control_is_informative` from the pooled arms rather than trusting
+    any single node's copy, since a node that ran only one arm cannot know what
+    the others did.
+    """
+    parts = [results[k] for k in ("control_exchangeability", "control_strong")
+             if results.get(k)]
+    if not parts:
+        return None
+    arms, seen = [], set()
+    for p in parts:
+        for a in p.get("arms", []):
+            if a["arm"] not in seen:
+                seen.add(a["arm"])
+                arms.append(a)
+    by_name = {a["arm"]: a for a in arms}
+    left = [a["arm"] for a in arms if a["arm"] != "exchangeable" and not a["inside_band"]]
+    merged = dict(parts[0])
+    merged["arms"] = arms
+    merged["violations_that_left_the_band"] = left
+    merged["paper_shift_leaves_band"] = bool(
+        "non_exchangeable" in by_name and not by_name["non_exchangeable"]["inside_band"])
+    merged["control_is_informative"] = bool(
+        by_name.get("exchangeable", {}).get("inside_band") and left)
+    merged["arms_from_nodes"] = len(parts)
+    return merged
+
+
 def claim6(results):
     """Thm 4.7 band, plus the control that decides whether the band means anything.
 
@@ -979,7 +1009,10 @@ def claim6(results):
             v = tab["summary"][model]["ours-sel"]["marginal"]
             record(f"real:{ds}/{model}", v, _cov_ci(tab.get("per_repeat") or {}, "SLCP-sel", mi))
 
-    ctrl = results.get("control_exchangeability")
+    # The control ladder may arrive as more than one node -- the first two arms
+    # were run before it was clear that the paper's own source/target gap does not
+    # leave the band -- so arms are pooled across every control file present.
+    ctrl = _merge_controls(results)
     informative = bool(ctrl and ctrl["control_is_informative"])
     excluded = [k for k, v in obs.items() if v["excluded_by_ci"]]
     outside_pt = [k for k, v in obs.items() if not v["in_band"]]
@@ -1069,7 +1102,7 @@ def run(cfg, upstream_root):
         os.path.join(root, "results", "real"), upstream_root
     )
 
-    for name in ("invariants", "control_exchangeability", "intervention"):
+    for name in ("invariants", "control_exchangeability", "control_strong", "intervention"):
         path = os.path.join(root, "results", "checks", f"{name}.json")
         if os.path.exists(path):
             res[name] = _load_json(path)

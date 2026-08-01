@@ -1,0 +1,162 @@
+{
+ "kind": "control_exchangeability",
+ "dtype": "logabs",
+ "n": 30,
+ "m": 500,
+ "reps": 20,
+ "band": {
+  "lo": 0.88,
+  "hi": 0.952258064516129,
+  "formula": "[1-a-a_tol, 1-a+a_tol+1/(n+1)) at a=0.1, a_tol=0.02, n=30"
+ },
+ "seconds": 4457.3,
+ "arms": [
+  {
+   "arm": "exchangeable",
+   "exchangeable": true,
+   "calibration_distribution": "target",
+   "repeats": 20,
+   "coverage_per_repeat": [
+    0.9472648254949403,
+    0.9491705108922797,
+    0.92667721655427,
+    0.93278797223342,
+    0.9713782856472923,
+    0.8928506421363511,
+    0.9525822726115002,
+    0.8523139253828694,
+    0.8948641060099339,
+    0.9490820339800154,
+    0.9601728441210191,
+    0.9492314229843164,
+    0.8470047761630458,
+    0.8875759014477367,
+    0.9695833062056097,
+    0.9451073215508241,
+    0.9546132815793434,
+    0.8695026631600881,
+    0.9312295842639815,
+    0.9206475946071659
+   ],
+   "coverage_mean": 0.9251820243513003,
+   "coverage_stderr": 0.008518426730919517,
+   "coverage_ci95": [
+    0.908485907958698,
+    0.9418781407439025
+   ],
+   "selected_lambda_idx": [
+    10,
+    3,
+    18,
+    5,
+    18,
+    6,
+    8,
+    18,
+    18,
+    18,
+    3,
+    13,
+    5,
+    18,
+    18,
+    0,
+    18,
+    8,
+    5,
+    3
+   ],
+   "band": [
+    0.88,
+    0.952258064516129
+   ],
+   "inside_band": true
+  },
+  {
+   "arm": "non_exchangeable",
+   "exchangeable": false,
+   "calibration_distribution": "source (mu_s, gamma_s=1.2, me_s=d/3)",
+   "repeats": 20,
+   "coverage_per_repeat": [
+    0.9418656522451508,
+    0.953817966294681,
+    0.9135879151704164,
+    0.9495783556105889,
+    0.9726274511080085,
+    0.8426017292029635,
+    0.9474490949913154,
+    0.9356068952934765,
+    0.8990381986423135,
+    0.9352476660198377,
+    0.9737323378225369,
+    0.9036292311629678,
+    0.885851510845065,
+    0.9138564474180045,
+    0.9683275156608706,
+    0.9666002114956184,
+    0.9560774595283789,
+    0.8658821243888479,
+    0.9012813077166575,
+    0.988696965746859
+   ],
+   "coverage_mean": 0.9307678018182278,
+   "coverage_stderr": 0.008707838137503214,
+   "coverage_ci95": [
+    0.9137004390687216,
+    0.9478351645677341
+   ],
+   "selected_lambda_idx": [
+    18,
+    18,
+    9,
+    9,
+    18,
+    10,
+    18,
+    5,
+    18,
+    1,
+    4,
+    7,
+    7,
+    7,
+    18,
+    8,
+    18,
+    6,
+    18,
+    11
+   ],
+   "band": [
+    0.88,
+    0.952258064516129
+   ],
+   "inside_band": true
+  }
+ ],
+ "control_is_informative": false,
+ "interpretation": "NOT informative: the band does not discriminate, so an in-band observation is weak evidence",
+ "wall_seconds": 4530.69,
+ "environment": {
+  "git_sha": "ffc41d38d479bc8580a455ae4d05e6981a6a256e",
+  "python": "3.12.11",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "os_cpu_count": 8,
+  "cgroup_cpu_quota": 8,
+  "threads_pinned": 8,
+  "numpy": "2.5.1",
+  "scipy": "1.18.0",
+  "torch": "2.13.0",
+  "torch_num_threads": 8,
+  "upstream_sha": "1d8df7614d49eada881426742688ba75fec631b9",
+  "node_config": {
+   "stage": "control",
+   "note": "Claim 6 negative control: exchangeable vs non-exchangeable calibration against the Theorem 4.7 band.",
+   "dtype": "logabs",
+   "n": 30,
+   "m": 500,
+   "testN": 500,
+   "reps": 20
+  }
+ }
+}

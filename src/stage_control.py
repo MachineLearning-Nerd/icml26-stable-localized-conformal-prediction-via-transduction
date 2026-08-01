@@ -6,20 +6,29 @@ alpha_tol=0.02, n=30, assuming only that `S_1..S_{n+1}` are exchangeable.
 
 That band is 7.2 points wide, so "observed coverage landed inside it" is weak
 evidence on its own: a check that passes for every possible implementation is
-not a check. This stage runs two arms that differ in exactly one thing --
-whether the calibration scores are exchangeable with the test score:
+not a check. This stage runs a ladder of arms that differ from the reference in
+exactly one thing -- the distribution the calibration scores are drawn from:
 
   exchangeable    calibration drawn from the TARGET distribution (the paper's
                   setting). Must land INSIDE the band.
   non_exchangeable
                   calibration drawn from the SOURCE distribution (different
                   mean, different regression coefficient, gamma_s=1.2 noise)
-                  while the test point stays target. Everything else --
-                  estimator, lambda grid, selection rule, seeds -- is identical.
-                  Must land OUTSIDE the band.
+                  while the test point stays target.
+  strong_violation
+                  target covariates, but the calibration noise scale shrunk to
+                  gamma=0.2 against a test gamma of 1.0, so calibration scores
+                  are systematically smaller than test scores.
 
-If the non-exchangeable arm also lands inside, the Theorem 4.7 check is vacuous
-and must be reported as such rather than as corroboration.
+Everything else -- estimator, lambda grid, selection rule, seeds -- is identical
+across arms.
+
+Measured outcome: `non_exchangeable` does NOT leave the band (0.9308 against an
+upper edge of 0.9523). The ladder therefore continues past the paper's own
+source/target gap, so that "no violation leaves the band" can be told apart from
+"the violation tried was too mild". If NO arm leaves the band, the Theorem 4.7
+check has no resolution at these parameters and must be reported as vacuous
+rather than as corroboration.
 """
 
 import json
@@ -31,6 +40,29 @@ import numpy as np
 
 BAND_LO = 0.88
 BAND_HI = 0.9 + 0.02 + 1.0 / 31.0  # 0.9522580645...
+
+
+def _cal_draw(name, shared, k):
+    """(me, gamma, mu) for this arm's calibration sample.
+
+    A ladder, not a switch. The paper's own source/target gap turns out not to be
+    enough to leave a 7.2-point band, so the ladder continues past it: `strong`
+    keeps the covariate law but shrinks the calibration noise scale, which makes
+    calibration scores systematically smaller than test scores and should
+    undercover. If even that stays inside the band, the band has no resolution at
+    these parameters and no in-band observation is evidence for anything.
+    """
+    mu_t, mu_s, me_t, me_s = shared["mu_t"], shared["mu_s"], shared["me_t"], shared["me_s"]
+    gamma_t, gamma_s = k["gamma_t"], k["gamma_s"]
+    if name == "exchangeable":
+        return me_t, gamma_t, mu_t, "target"
+    if name == "non_exchangeable":
+        return me_s, gamma_s, mu_s, f"source (mu_s, gamma_s={gamma_s}, me_s=d/3)"
+    if name == "strong_violation":
+        g = float(shared.get("gamma_strong", 0.2))
+        return me_t, g, mu_t, (f"target covariates with calibration noise scale gamma={g} "
+                               f"against test gamma={gamma_t}")
+    raise ValueError(f"unknown arm {name}")
 
 
 def _arm(name, exchangeable, cfg, upstream_root, shared):
@@ -59,10 +91,8 @@ def _arm(name, exchangeable, cfg, upstream_root, shared):
         setseed(seed_rep)
         testAgent = generate_agent(testN, d, me_t, gamma_t, mu_t, dtype)
         calTrAgent = generate_agent(n, d, me_t, gamma_t, mu_t, dtype)
-        if exchangeable:
-            calAgent = generate_agent(n, d, me_t, gamma_t, mu_t, dtype)
-        else:
-            calAgent = generate_agent(n, d, me_s, gamma_s, mu_s, dtype)
+        cal_me, cal_gamma, cal_mu, _ = _cal_draw(name, shared, k)
+        calAgent = generate_agent(n, d, cal_me, cal_gamma, cal_mu, dtype)
         semiAgent = generate_agent(m, d, me_t, gamma_t, mu_t, dtype)
 
         setseed(seed_rep)
@@ -95,7 +125,7 @@ def _arm(name, exchangeable, cfg, upstream_root, shared):
     return {
         "arm": name,
         "exchangeable": exchangeable,
-        "calibration_distribution": "target" if exchangeable else "source (mu_s, gamma_s=1.2, me_s=d/3)",
+        "calibration_distribution": _cal_draw(name, shared, shared["k"])[3],
         "repeats": len(cov),
         "coverage_per_repeat": cov_per_repeat,
         "coverage_mean": mean,
@@ -140,15 +170,20 @@ def run(cfg, upstream_root):
         "mu_t": mu_t, "mu_s": mu_s, "me_t": me_t, "me_s": me_s,
         "generator_base": generator_base,
         "lbds": sorted(set(k["lbds"])), "n_grid": k["n_grid"],
+        "gamma_strong": float(cfg.get("gamma_strong", 0.2)),
     }
 
     t0 = time.time()
-    arms = [
-        _arm("exchangeable", True, cfg, upstream_root, shared),
-        _arm("non_exchangeable", False, cfg, upstream_root, shared),
-    ]
+    arm_names = cfg.get("arms") or ["exchangeable", "non_exchangeable", "strong_violation"]
+    arms = [_arm(nm, nm == "exchangeable", cfg, upstream_root, shared) for nm in arm_names]
 
-    control_is_informative = arms[0]["inside_band"] and not arms[1]["inside_band"]
+    by_name = {a["arm"]: a for a in arms}
+    # Informative if the reference arm sits inside the band and SOME violation
+    # leaves it. Which one matters is reported rather than hidden: the paper's own
+    # source/target gap and a larger one are graded separately.
+    left_band = [a["arm"] for a in arms if a["arm"] != "exchangeable" and not a["inside_band"]]
+    control_is_informative = bool(
+        by_name.get("exchangeable", {}).get("inside_band") and left_band)
     out = {
         "kind": "control_exchangeability",
         "dtype": dtype, "n": n, "m": m, "reps": reps,
@@ -156,14 +191,20 @@ def run(cfg, upstream_root):
         "seconds": round(time.time() - t0, 1),
         "arms": arms,
         "control_is_informative": control_is_informative,
+        "violations_that_left_the_band": left_band,
+        "paper_shift_leaves_band": bool(
+            "non_exchangeable" in by_name and not by_name["non_exchangeable"]["inside_band"]),
         "interpretation": (
-            "informative: the band separates exchangeable from non-exchangeable calibration"
+            f"informative: the band is exited by {left_band}, so an in-band observation "
+            f"is not automatic"
             if control_is_informative
-            else "NOT informative: the band does not discriminate, so an in-band observation is weak evidence"
+            else "NOT informative: no exchangeability violation tried here leaves the band, "
+                 "so an in-band observation is weak evidence at these parameters"
         ),
     }
     out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results")
     os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "control_exchangeability.json"), "w") as f:
+    name = cfg.get("out_name", "control_exchangeability")
+    with open(os.path.join(out_dir, f"{name}.json"), "w") as f:
         json.dump(out, f, indent=1)
     return out
