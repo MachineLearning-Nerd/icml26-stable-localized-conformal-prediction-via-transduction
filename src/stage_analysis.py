@@ -753,6 +753,17 @@ def claim3(results):
         # trend; each curve must have enough valid points to have a direction.
         "lambda_curves_have_enough_valid_points": bool(
             lam_points and min(lam_points) >= 3),
+        # Registered while the slope was still null, and it can only ever LOWER
+        # the score. `_adjudicate` turns a failing check into FALSIFIED, which
+        # earns the same credit as VERIFIED -- but a slope steeper than -1 is
+        # consistent with the upper bound O(n^-1) and so is not a counterexample
+        # to anything the paper printed. Claiming falsification credit for it
+        # would be claiming a falsification that does not exist. When the
+        # interval sits entirely below -1 this precondition fails, and the claim
+        # is BLOCKED (0 points) rather than FALSIFIED (2). See
+        # `big_o_versus_theta` below for the full statement.
+        "slope_failure_if_any_would_contradict_the_upper_bound": not (
+            ci and ci[1] < -1.0),
     }
     # Theorem 4.6 is universally quantified, so the simulation is scoped
     # corroboration and cannot carry the claim alone. Registered in
@@ -801,6 +812,15 @@ def claim3(results):
                 "claim's force comes from a comparison -- standard O(n^-1) against StCP's "
                 "O(m^-1 + {n(1+lambda)^2}^-1) -- and that comparison only bites if the "
                 "standard rate is the rate rather than merely an upper bound on it."),
+            "how_this_is_enforced": (
+                "by the integrity precondition "
+                "`slope_failure_if_any_would_contradict_the_upper_bound`. If the bootstrap "
+                "interval lies entirely below -1, that precondition fails and Claim 3 is "
+                "BLOCKED, scoring nothing. It is deliberately NOT reported as FALSIFIED, even "
+                "though FALSIFIED and VERIFIED earn identical credit -- which means this rule "
+                "can only ever cost points, never win them. That is the point: it exists so a "
+                "result consistent with the printed theorem cannot be banked as a refutation "
+                "of it."),
             "so_a_slope_steeper_than_minus_one": (
                 "fails the gate without contradicting the printed theorem. If that is what "
                 "the sweep shows, the honest reading is that Theorem 4.6's Case 1 bound holds "
