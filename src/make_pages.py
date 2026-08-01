@@ -757,6 +757,39 @@ def _transcription_block(a):
     return "\n".join(lines)
 
 
+def _c4_reference(v):
+    """Which baseline each percentage divides by, paper against reproduction.
+
+    A percentage can miss badly while every underlying Std matches, because the
+    formula divides by the *smallest* eligible baseline and that argmin flips on
+    a difference far smaller than the swing it causes. Without this table a
+    reader cannot tell that apart from the cells genuinely disagreeing.
+    """
+    flips = (v.get("cell_agreement") or {}).get("reference_baseline") or {}
+    if not flips:
+        return ""
+    agree = (v.get("cell_agreement") or {}).get("agree") or {}
+    out = ["", "### What each percentage divides by", "",
+           "The Appendix C.1 percentage divides by `a_ref`, the smallest Std among base/SDCP/PPI",
+           "whose marginal coverage is in range. When two baselines are nearly tied, a Monte-Carlo",
+           "difference of a few thousandths moves that argmin and swings the percentage by several",
+           "points while every Std still matches. This table separates that from real disagreement.",
+           "",
+           "| Cell | % in CI | a_ref (paper) | a_ref (repro) | flipped | largest baseline gap |",
+           "| --- | --- | --- | --- | --- | --- |"]
+    for cell in sorted(flips):
+        d = flips[cell]
+        out.append(
+            f"| {cell} | {f(cell in agree)} | `{d['published_reference']}` "
+            f"({f(d['published_reference_std'])}) | `{d['reproduced_reference']}` "
+            f"({f(d['reproduced_reference_std'])}) | {f(d['flipped'])} | "
+            f"{f(d['max_abs_baseline_difference'])} |")
+    flipped = [c for c, d in flips.items() if d["flipped"]]
+    out += ["", (f"Reference flipped in: {', '.join(sorted(flipped))}."
+                 if flipped else "The reference baseline is the same one in every cell."), ""]
+    return "\n".join(out)
+
+
 def _c4(a):
     v = a["verdicts"]["C4"]
     out = ["## Table 1 reproduced, cell by cell", "",
@@ -806,6 +839,7 @@ def _c4(a):
                            f"{f(r['pct_published'], 1)} |")
             out += ["", f"Reference baseline used: `{m['reference']['a_ref_method']}` "
                         f"(Std {f(m['reference']['a_ref_std'])}); oracle Std {f(m['reference']['oracle_std'])}.", ""]
+    out += [_c4_reference(v)]
     g, c = v["reproduced_glcp_pct_range"], v["reproduced_cqr_pct_range"]
     out += ["## Adjudicating the claim's stated bands", "",
             "| Band | Claimed | Reproduced range (`ours`) | Claim covers every cell |",
