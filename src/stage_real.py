@@ -50,10 +50,22 @@ def _marks(mar, n_reported, tol=0.01):
     return out
 
 
+def _is_cls(res_dict, key):
+    """Classification datasets store a scalar local coverage, regression an array.
+
+    `sum_compare_result` indexes `values[4][0]` unless told `cls=True`, so DERMA
+    and TISSUE crash on the regression path. Detecting the shape is safer than a
+    dataset whitelist: it follows whichever `summation_real*` actually produced
+    the pickle.
+    """
+    return np.ndim(res_dict[key][4]) == 0
+
+
 def _summarise(res_dict, sum_tab, n_reported):
     out = {}
     for model, key in MODEL_KEYS.items():
-        rows = sum_tab.sum_compare_result(res_dict, key, tol=0.02, n=n_reported)
+        cls = _is_cls(res_dict, key)
+        rows = sum_tab.sum_compare_result(res_dict, key, tol=0.02, n=n_reported, cls=cls)
         marks = _marks(rows[:, 0], n_reported)
         eligible = [i for i in (0, 1, 2) if not marks[i]] or [0, 1, 2]
         a_ref = float(np.min(rows[eligible, 2]))
@@ -68,6 +80,7 @@ def _summarise(res_dict, sum_tab, n_reported):
                     float("nan") if abs(denom) < 1e-12 else (a_ref - entry["std"]) / denom * 100.0
                 )
             table[label] = entry
+        table["_cls"] = bool(cls)
         table["_reference"] = {
             "a_ref_std": a_ref,
             "a_ref_method": METHOD_LABELS[int(eligible[int(np.argmin(rows[eligible, 2]))])],
