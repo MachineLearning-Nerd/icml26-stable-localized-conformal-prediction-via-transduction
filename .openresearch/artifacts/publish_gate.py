@@ -22,7 +22,7 @@ SCRATCH = os.path.dirname(os.path.abspath(__file__))
 STAGING = os.path.join(SCRATCH, "staging")
 
 ALLOW = ["logbook.json", "pages/**/*.md", "pages/*.md", "repro/**/*.py",
-         "repro/**/*.md", "repro/**/*.json", "README.md"]
+         "repro/**/*.md", "repro/**/*.json", "repro/**/*.txt", "README.md"]
 
 TEXT_EXT = {".md", ".json", ".py", ".txt", ".css", ".js", ".html", ".svg"}
 

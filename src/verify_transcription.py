@@ -111,6 +111,9 @@ def findings():
     return {
         "table1_glcp_pct": glcp,
         "table1_cqr_pct": cqr,
+        "claim4_glcp_band": [lo, hi],
+        "claim4_cqr_band": [qlo, qhi],
+        "endpoint_rounding_slack_pct": slack,
         "glcp_cells_below_claimed_floor": {k: v for k, v in glcp.items() if v < lo - slack},
         "glcp_cells_above_claimed_ceiling": {k: v for k, v in glcp.items() if v > hi + slack},
         "cqr_cells_outside_claimed_band": {k: v for k, v in cqr.items()

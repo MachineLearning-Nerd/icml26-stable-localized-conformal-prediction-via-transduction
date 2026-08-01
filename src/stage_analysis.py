@@ -162,6 +162,33 @@ def _boot_pct_sim(parts, model_idx, lam_idx, n_boot=BOOT):
 # --------------------------------------------------------------------- claims
 
 
+def transcription_audit():
+    """Machine-check `published.py` against the archived paper text.
+
+    Claims 4 and 5 are decided partly on the paper's own printed cells, so a
+    transcription slip would manufacture -- or hide -- a falsification. Cached
+    because both claims ask for it.
+    """
+    if not hasattr(transcription_audit, "_cached"):
+        import verify_transcription as V
+
+        text = open(V.SRC, encoding="utf-8").read()
+        fails = []
+        V.check_table1(text, fails)
+        V.check_table2(text, fails)
+        transcription_audit._cached = {
+            "source": os.path.relpath(V.SRC, _root()),
+            "cells_disagreeing_with_the_paper": fails,
+            "ok": not fails,
+            "findings": V.findings(),
+        }
+    return transcription_audit._cached
+
+
+def _transcription_ok():
+    return bool(transcription_audit()["ok"])
+
+
 def _adjudicate(claim_checks, integrity):
     """Separate "the evidence is sound" from "the claim is true".
 
@@ -659,6 +686,10 @@ def claim4(results):
         # convict the paper of anything, however its own numbers land.
         "all_five_datasets_ran": ran_all,
         "reproduces_published_table_cell_by_cell": bool(reproduces),
+        # The primary route is arithmetic on the paper's printed cells, so those
+        # cells must provably be the paper's. Verified against the archived
+        # source text, not trusted as transcribed.
+        "published_table_matches_the_paper_text": _transcription_ok(),
     }
     checks = {
         # PRIMARY ROUTE -- arithmetic on the paper's own Table 1, which is what the
@@ -825,6 +856,9 @@ def claim5(results):
             control and control.get("gain_shrinks_without_shift")
         ),
         "bootstrap_available_at_n30": bool(boots),
+        # The n=100 > n=30 CQR reading is arithmetic on the printed table, so the
+        # printed table must provably be the paper's.
+        "published_table_matches_the_paper_text": _transcription_ok(),
     }
     checks = {
         "n30_glcp_matches_31_2_within_ci": target_hit.get("GLCP", False),
@@ -1024,6 +1058,7 @@ def run(cfg, upstream_root):
         "real_provenance": res["_real_shards"],
         "compute_provenance": _load_json_opt(
             os.path.join(root, "results", "compute_provenance.json")),
+        "transcription_audit": transcription_audit(),
         "verdicts": verdicts,
         "self_scored_points": points,
         "not_full_credit": failed,

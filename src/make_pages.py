@@ -201,7 +201,9 @@ def main(out_dir):
         dst = os.path.join(repro, sub)
         os.makedirs(dst, exist_ok=True)
         for name in sorted(os.listdir(src)):
-            if name.endswith((".py", ".md", ".json")):
+            # .txt carries the archived paper table text the transcription audit
+            # re-parses; without it the evaluator cannot repeat that check.
+            if name.endswith((".py", ".md", ".json", ".txt")):
                 shutil.copy2(os.path.join(src, name), os.path.join(dst, name))
                 written.append(f"repro/{sub}/{name}")
     dst = os.path.join(repro, "results")
@@ -567,6 +569,59 @@ def _c3(a):
     ])
 
 
+def _transcription_block(a):
+    """Show that the paper's numbers used above really are the paper's.
+
+    Both C4 and C5 are decided partly by arithmetic on printed cells, so the
+    transcription is itself evidence and is re-derived from the archived source
+    text rather than trusted.
+    """
+    t = a.get("transcription_audit")
+    if not t:
+        return ""
+    bad = t["cells_disagreeing_with_the_paper"]
+    src = "repro/artifacts/" + os.path.basename(t["source"])
+    lines = ["## Are these really the paper's numbers?", "",
+             "Every Std cell and percentage annotation quoted above is re-parsed from the archived",
+             f"paper text ([`{src}`]({src})) and compared against the transcription in",
+             "[`repro/src/published.py`](repro/src/published.py). The checker is",
+             "[`repro/src/verify_transcription.py`](repro/src/verify_transcription.py) and exits nonzero",
+             "on any disagreement.", "",
+             f"**Result: {'all cells agree' if t['ok'] else str(len(bad)) + ' cell(s) disagree'}.**", ""]
+    if bad:
+        lines += ["| Disagreement |", "| --- |"] + [f"| `{b}` |" for b in bad[:20]] + [""]
+    f_ = t["findings"]
+    glo, ghi = f_["claim4_glcp_band"]
+    qlo, qhi = f_["claim4_cqr_band"]
+    below = f_["glcp_cells_below_claimed_floor"]
+    lines += [f"### Table 1 `ours` reductions, as printed, against the claimed bands", "",
+              "| Dataset | GLCP | inside {:.0f}–{:.0f}%? | CQR | inside {:.0f}–{:.0f}%? |".format(
+                  glo, ghi, qlo, qhi),
+              "| --- | --- | --- | --- | --- |"]
+    slack = f_["endpoint_rounding_slack_pct"]
+    for ds, gv in f_["table1_glcp_pct"].items():
+        qv = f_["table1_cqr_pct"][ds]
+        gin = glo - slack <= gv <= ghi + slack
+        qin = qlo - slack <= qv <= qhi + slack
+        lines.append(f"| {ds} | {gv:.1f}% | {f(gin)} | {qv:.1f}% | {f(qin)} |")
+    lines += ["",
+              f"Cells count as outside only beyond {slack} of a point, so the claim's integer "
+              "endpoints cannot manufacture a violation.", ""]
+    if below:
+        worst = ", ".join(f"{k} at {v:.1f}%" for k, v in below.items())
+        lines.append(f"**{worst}** — below the claimed {glo:.0f}% floor by more than rounding "
+                     "can explain, in the paper's own table.")
+    else:
+        lines.append("No printed GLCP cell falls below the claimed floor.")
+    t2 = f_["table2_cqr_pct_by_n"]
+    order = " / ".join(f"{t2[k]:.1f}%" for k in sorted(t2, key=int))
+    lines += ["",
+              f"### Table 2, CQR column", "",
+              f"n = 30 / 100 / 500 gives {order}, so the maximum is at "
+              f"**n = {f_['table2_cqr_argmax_n']}**, not n = 30.", ""]
+    return "\n".join(lines)
+
+
 def _c4(a):
     v = a["verdicts"]["C4"]
     out = ["## Table 1 reproduced, cell by cell", "",
@@ -646,7 +701,7 @@ def _c4(a):
     for ds in v["published_glcp_pct_by_dataset"]:
         out.append(f"| {ds} | {f(v['published_glcp_pct_by_dataset'][ds], 1)} | "
                    f"{f(v['published_cqr_pct_by_dataset'][ds], 1)} |")
-    out += [""]
+    out += ["", _transcription_block(a)]
     return "\n".join(out)
 
 
@@ -697,6 +752,7 @@ def _c5(a):
         "With r = 0 and γ_s = γ_t there is no covariate or noise shift, so the source model carries",
         "no extra information and the transfer gain should shrink.",
         "", "\n".join(ctrl_rows) if ctrl_rows else "_control pending_",
+        "", _transcription_block(a),
     ])
 
 
