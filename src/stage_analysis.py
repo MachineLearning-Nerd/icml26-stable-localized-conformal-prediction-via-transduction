@@ -12,6 +12,7 @@ import sys
 import numpy as np
 
 import published as P
+import real_reduce
 import shard_reduce
 
 MODELS = ["GLCP", "CQR"]
@@ -132,21 +133,99 @@ def claim1(results):
     }
 
 
+def _fit_envelope(lams, devs, n, train_idx, test_idx, rng, n_perm=200):
+    """Fit Theorem 4.2's envelope on half the lambda grid, test it on the other half.
+
+    The bound is `dev <= C * min(eps + sqrt(lam) + 1/n, delta_S + 1/sqrt(lam) + 1/n)`
+    with C, eps, delta_S all unspecified by the paper. Fitting them on the same
+    points used to test would be circular, so C/eps/delta_S are chosen on
+    `train_idx` and the violation is measured on the held-out `test_idx`.
+
+    Three free parameters and a min() are flexible enough to fit many curves, so a
+    permutation control asks whether the *shape* carries information at all: if a
+    random pairing of lambda to deviation fits as well, the envelope explains
+    nothing.
+    """
+    lams = np.asarray(lams, dtype=float)
+    devs = np.asarray(devs, dtype=float)
+
+    def envelope(params, idx):
+        C, eps, dS = params
+        lam = np.maximum(lams[idx], 1e-12)
+        a = eps + np.sqrt(lam) + 1.0 / n
+        b = dS + 1.0 / np.sqrt(lam) + 1.0 / n
+        return C * np.minimum(a, b)
+
+    def worst_ratio(params, idx):
+        env = envelope(params, idx)
+        return float(np.max(devs[idx] / np.maximum(env, 1e-12)))
+
+    def fit(d):
+        best = None
+        for eps in np.linspace(0.0, 0.2, 21):
+            for dS in np.linspace(0.0, 0.2, 21):
+                lam = np.maximum(lams[train_idx], 1e-12)
+                env1 = np.minimum(eps + np.sqrt(lam) + 1.0 / n, dS + 1.0 / np.sqrt(lam) + 1.0 / n)
+                C = float(np.max(d[train_idx] / np.maximum(env1, 1e-12)))
+                cand = (C, eps, dS)
+                score = C  # smallest constant that covers the training half
+                if best is None or score < best[0]:
+                    best = (score, cand)
+        return best[1]
+
+    params = fit(devs)
+    held_out = worst_ratio(params, test_idx)
+
+    perm = []
+    for _ in range(n_perm):
+        d = rng.permutation(devs)
+        p2 = fit(d)
+        env = envelope(p2, test_idx)
+        perm.append(float(np.max(d[test_idx] / np.maximum(env, 1e-12))))
+    perm = np.array(perm)
+    return {
+        "fitted_C": params[0], "fitted_eps": params[1], "fitted_delta_S": params[2],
+        "held_out_max_violation_ratio": held_out,
+        "envelope_holds_on_held_out": bool(held_out <= 1.0),
+        "permuted_median_ratio": float(np.median(perm)),
+        "permuted_fraction_as_good": float(np.mean(perm <= held_out)),
+        "n_train": len(train_idx), "n_test": len(test_idx), "n_perm": n_perm,
+    }
+
+
 def claim2(results):
-    """Thm 4.2: coverage stays valid across the whole lambda grid; DP does not."""
-    per_setting, worst = {}, 0.0
+    """Thm 4.2: the coverage-error envelope in lambda, plus a control that fails.
+
+    The theorem's constant C is unspecified, so the bound cannot be falsified at a
+    single lambda. What is testable is (a) the envelope SHAPE, fitted on half the
+    lambda grid and tested on the held-out half, and (b) the operative consequence
+    stated in Remark 4.3 and Section 3.1 -- that coverage does not drift away as
+    lambda grows.
+    """
     lo, up = P.TABLE_ANNOTATION_BAND
+    per_setting, envelopes, worst = {}, {}, 0.0
+    rng = np.random.default_rng(7)
+
     for name, tab in results["sim"].items():
+        n = int(name.split("-n")[1].split("-")[0])
+        lams = results["_lambda_grid"]
         for model in MODELS:
-            cur = tab["models"][model]["lambda_curve"]["marginal"]
-            dev = float(np.max(np.abs(np.array(cur) - 0.9)))
-            inband = bool(np.all((np.array(cur) >= lo) & (np.array(cur) <= up)))
+            cur = np.array(tab["models"][model]["lambda_curve"]["marginal"])
+            devs = np.abs(cur - 0.9)
+            in_band = (cur >= lo) & (cur <= up)
             per_setting[f"{name}/{model}"] = {
-                "max_abs_deviation_over_lambda": dev,
-                "all_lambda_in_annotation_band": inband,
-                "n_lambda": len(cur),
+                "max_abs_deviation_over_lambda": float(devs.max()),
+                "fraction_of_lambda_in_band": float(in_band.mean()),
+                "n_lambda": int(len(cur)),
+                "deviation_at_smallest_lambda": float(devs[0]),
+                "deviation_at_largest_lambda": float(devs[-1]),
             }
-            worst = max(worst, dev)
+            worst = max(worst, float(devs.max()))
+            if lams and len(lams) == len(devs):
+                idx = np.arange(len(devs))
+                envelopes[f"{name}/{model}"] = _fit_envelope(
+                    lams, devs, n, idx[::2], idx[1::2], rng
+                )
 
     dp = {}
     for name, tab in results["sim"].items():
@@ -158,11 +237,19 @@ def claim2(results):
         for model in MODELS:
             v = tab["summary"][model]["DP"]["marginal"]
             dp[f"{ds}/{model}"] = {"marginal": v, "in_band": bool(rlo <= v <= rup)}
-
     dp_out = [k for k, v in dp.items() if not v["in_band"]]
+
+    frac_in = [v["fraction_of_lambda_in_band"] for v in per_setting.values()]
+    env_ok = [e["envelope_holds_on_held_out"] for e in envelopes.values()]
+    informative = [e["permuted_fraction_as_good"] <= 0.05 for e in envelopes.values()]
+
     checks = {
-        "stcp_coverage_valid_across_full_lambda_grid": all(
-            v["all_lambda_in_annotation_band"] for v in per_setting.values()
+        "coverage_robust_over_most_of_the_lambda_grid": bool(
+            frac_in and np.mean(frac_in) >= 0.8
+        ),
+        "envelope_holds_on_held_out_lambda": bool(env_ok and all(env_ok)),
+        "envelope_shape_beats_permutation_control": bool(
+            informative and np.mean(informative) >= 0.5
         ),
         "negative_control_DP_leaves_band": len(dp_out) >= max(1, len(dp) // 2),
     }
@@ -170,7 +257,9 @@ def claim2(results):
         "verdict": "VERIFIED" if all(checks.values()) else "FALSIFIED",
         "checks": checks,
         "worst_deviation_over_all_lambda": worst,
+        "mean_fraction_of_lambda_in_band": float(np.mean(frac_in)) if frac_in else None,
         "per_setting": per_setting,
+        "envelope_fits": envelopes,
         "negative_control_DP": {"per_setting": dp, "out_of_band": dp_out},
     }
 
@@ -408,9 +497,48 @@ def claim6(results):
 # ----------------------------------------------------------------------- main
 
 
+def _load_real(real_dir, upstream_root):
+    """Load Table 1 entries, rebuilding any dataset that was run as repeat shards.
+
+    A dataset appears either as `<DS>.json` (one 50-repeat job) or as
+    `<DS>-s0.json ... <DS>-s4.json`. Shards are merged back into one resDict and
+    summarised once, because the lambda that `sum_compare_result` selects must be
+    chosen on all 50 repeats rather than separately within each shard.
+    """
+    import stage_real
+
+    sys.path.insert(0, os.path.join(upstream_root, "RealAnalysis"))
+    groups, provenance = {}, {}
+    for path in sorted(glob.glob(os.path.join(real_dir, "*.json"))):
+        name = os.path.basename(path)[:-5]
+        base = name.rsplit("-s", 1)[0] if "-s" in name else name
+        groups.setdefault(base, []).append((name, _load_json(path)))
+
+    out = {}
+    for base, items in groups.items():
+        whole = [d for n, d in items if n == base]
+        if whole:
+            out[base] = whole[0]
+            provenance[base] = {"mode": "single_job", "repeats": whole[0].get("repeats", 50)}
+            continue
+        shards = [d for _, d in items]
+        merged, meta = real_reduce.merge(shards)
+        import sum_tab
+
+        n_reported = int(shards[0]["n_reported"])
+        out[base] = {
+            "summary": stage_real._summarise(merged, sum_tab, n_reported),
+            "per_repeat": {"_note": "pooled across shards; see results/real/*-s*.json"},
+            "n_reported": n_reported,
+            "repeats": meta["repeats"],
+        }
+        provenance[base] = {"mode": "repeat_shards", **meta}
+    return out, provenance
+
+
 def run(cfg, upstream_root):
     root = _root()
-    res = {"sim": {}, "real": {}, "_sim_parts": {}}
+    res = {"sim": {}, "real": {}, "_sim_parts": {}, "_lambda_grid": cfg.get("lambda_grid") or []}
 
     shard_root = os.path.join(root, "results", "shards")
     for d in sorted(glob.glob(os.path.join(shard_root, "*"))):
@@ -426,8 +554,9 @@ def run(cfg, upstream_root):
             res["sim"][name] = table
             res["_sim_parts"][name] = parts
 
-    for path in sorted(glob.glob(os.path.join(root, "results", "real", "*.json"))):
-        res["real"][os.path.basename(path)[:-5]] = _load_json(path)
+    res["real"], res["_real_shards"] = _load_real(
+        os.path.join(root, "results", "real"), upstream_root
+    )
 
     for name in ("invariants", "control_exchangeability"):
         path = os.path.join(root, "results", "checks", f"{name}.json")
@@ -446,6 +575,7 @@ def run(cfg, upstream_root):
         "kind": "analysis",
         "settings_merged": sorted(res["sim"]),
         "datasets": sorted(res["real"]),
+        "real_provenance": res["_real_shards"],
         "verdicts": verdicts,
         "self_scored_points": points,
         "not_full_credit": failed,

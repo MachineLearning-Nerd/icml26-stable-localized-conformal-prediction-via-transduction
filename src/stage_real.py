@@ -145,9 +145,14 @@ def run(cfg, upstream_root):
         )
     entry = _patch_repeats(upstream_root, script, repeats) if repeats else script
 
+    shard = cfg.get("shard")
+    env = dict(os.environ)
+    if shard:
+        env["STCP_SHARD_LO"], env["STCP_SHARD_HI"] = str(shard[0]), str(shard[1])
+
     cmd = [sys.executable, "-u", os.path.join("RealAnalysis", entry)] + argv
     t0 = time.time()
-    proc = subprocess.run(cmd, cwd=upstream_root, capture_output=True, text=True)
+    proc = subprocess.run(cmd, cwd=upstream_root, capture_output=True, text=True, env=env)
     seconds = time.time() - t0
     if proc.returncode != 0:
         return {
@@ -185,6 +190,42 @@ def run(cfg, upstream_root):
 
     with open(pkl, "rb") as f:
         res_dict = pickle.load(f)
+
+    per_repeat_all = res_dict.get("_per_repeat")
+    if shard:
+        lo, hi = shard
+        sliced = {}
+        for name, d in (per_repeat_all or {}).items():
+            if name.startswith("_"):
+                continue
+            sliced[name] = {
+                k: [row[lo:hi] for row in np.asarray(v).tolist()]
+                for k, v in d.items()
+            }
+        # The pickle is a valid run over this shard's repeats (summation_real is
+        # sliced to them), so its per-key aggregates are correct statistics of
+        # 10 repeats -- but lambda selection must happen once on all 50, so the
+        # aggregates are shipped raw and reduced later rather than summarised here.
+        agg = {
+            k: [np.asarray(x).tolist() for x in v]
+            for k, v in res_dict.items()
+            if not k.startswith("_")
+        }
+        return {
+            "kind": "real_shard",
+            "status": "OK",
+            "dataset": cfg["dataset"],
+            "shard": [lo, hi],
+            "command": " ".join(cmd),
+            "n_reported": int(cfg["n_reported"]),
+            "n_over_m": cfg.get("n_over_m"),
+            "repeats": repeats or 50,
+            "source_patches": source_patches,
+            "procedure_patch": procedure_patch,
+            "seconds": round(seconds, 1),
+            "aggregates": agg,
+            "per_repeat": sliced,
+        }
 
     n_reported = int(cfg["n_reported"])
     summary = _summarise(res_dict, sum_tab, n_reported)

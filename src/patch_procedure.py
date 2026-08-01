@@ -16,6 +16,34 @@ is computed or reported.
 
 import os
 
+LOOP = "    for rep in range(repeats):\n"
+
+# `seed_rep = seed + 1 + rep` is set at the top of every iteration and all shared
+# state (source predictor, base generator, test-group clustering) is fixed before
+# the loop, so repeats are independent and reproducible one at a time. Restricting
+# the loop to a slice therefore computes exactly the rows a full run would, which
+# lets a 50-repeat dataset run as five jobs that each fit inside the job timeout.
+# `repeats` itself is left at 50 so every array keeps its full shape and the
+# per-repeat rows land at their true indices; unfilled rows are dropped on merge.
+LOOP_SHARDED = ("    _lo = int(os.environ.get('STCP_SHARD_LO', 0))\n"
+                "    _hi = int(os.environ.get('STCP_SHARD_HI', repeats))\n"
+                "    for rep in range(_lo, min(_hi, repeats)):\n"
+                "        print(f'[real shard {_lo}:{_hi}] repeat {rep} start "
+                "t+{(datetime.datetime.now()-_T0).total_seconds():.1f}s', flush=True)\n")
+
+T0 = "import datetime\n_T0 = datetime.datetime.now()\n"
+
+# `summation_real` averages over every row of `cov`/`size`, but a sharded run
+# fills only its own rows and leaves the rest at zero. Slicing here -- rather
+# than at the call sites, of which there are fourteen -- makes each shard's
+# pickle a valid run over its repeats, keyed exactly as the authors key it, so
+# lambda selection in `sum_compare_result` behaves identically.
+SUM_SIG = "def summation_real(cov, size, IND, fullIND, alpha=.1):\n"
+SUM_SIG_CLS = "def summation_real_cls(cov, size, IND, fullIND, alpha=.1):\n"
+SLICE = ("    _lo = int(os.environ.get('STCP_SHARD_LO', 0))\n"
+         "    _hi = int(os.environ.get('STCP_SHARD_HI', len(IND)))\n"
+         "    cov, size, IND = cov[_lo:_hi], size[_lo:_hi], IND[_lo:_hi]\n")
+
 ANCHOR = "    with open(f'{SimRpath}/{SimName}.pkl', 'wb') as f:\n"
 
 INJECT = '''    resDict['_per_repeat'] = {}
@@ -39,12 +67,29 @@ def build(upstream_root, script_dir="RealAnalysis", module="procedure.py"):
     count = src.count(ANCHOR)
     if count != 2:
         raise RuntimeError(f"expected 2 pickle sites in {module} (reg + cls), found {count}")
-    out = src.replace(ANCHOR, INJECT + ANCHOR)
+    n_loops = src.count(LOOP)
+    if n_loops != 2:
+        raise RuntimeError(f"expected 2 repeat loops in {module} (reg + cls), found {n_loops}")
+    if "import os" not in src.split("def ")[0]:
+        raise RuntimeError("procedure.py does not import os at module level")
+
+    for sig in (SUM_SIG, SUM_SIG_CLS):
+        if src.count(sig) != 1:
+            raise RuntimeError(f"expected exactly one {sig.strip()}")
+
+    out = src.replace(ANCHOR, INJECT + ANCHOR).replace(LOOP, LOOP_SHARDED)
+    out = out.replace(SUM_SIG, SUM_SIG + SLICE).replace(SUM_SIG_CLS, SUM_SIG_CLS + SLICE)
+    out = T0 + out
+    if out.count("STCP_SHARD_LO") != 4:
+        raise RuntimeError("shard patch did not apply to both loops and both summations")
     with open(src_path, "w") as f:
         f.write(out)
     return {
         "patched": os.path.join(script_dir, module),
         "sites": count,
+        "sharded_loops": n_loops,
+        "shard_env": ["STCP_SHARD_LO", "STCP_SHARD_HI"],
+        "sharded_summations": ["summation_real", "summation_real_cls"],
         "adds": "_per_repeat: per-repeat mean coverage and mean set size for all 7 methods",
         "changes_reported_numbers": False,
     }
