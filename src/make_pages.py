@@ -862,13 +862,44 @@ def _c6(a):
         "", "\n".join(obs), "",
         "## Why this check is not vacuous",
         "",
-        "The band is 7.2 points wide, so landing inside it proves little on its own. The control",
-        "below changes exactly one thing — whether the calibration scores are exchangeable with the",
-        "test score — and leaves estimator, λ grid, selection rule and seeds identical.",
+        "The band is 7.2 points wide, so landing inside it proves little on its own. Each arm below",
+        "changes exactly one thing — the distribution the calibration scores are drawn from — and",
+        "leaves estimator, λ grid, selection rule and seeds identical.",
         "", "\n".join(crows) if crows else "_control pending_", "",
-        f"Control is informative: {f(ctrl['control_is_informative']) if ctrl else '—'}. "
-        + (ctrl["interpretation"] if ctrl else ""),
+        _c6_ladder(ctrl),
     ])
+
+
+def _c6_ladder(ctrl):
+    """State plainly which violations exited the band and which did not."""
+    if not ctrl:
+        return "_control pending_"
+    left = ctrl.get("violations_that_left_the_band", [])
+    paper_left = ctrl.get("paper_shift_leaves_band")
+    lines = [f"Control is informative: {f(ctrl['control_is_informative'])}. "
+             + ctrl.get("interpretation", ""), ""]
+    if paper_left is False:
+        lines += [
+            "> **The paper's own shift is not enough.** Drawing the calibration sample from the",
+            "> SOURCE distribution — the exact non-exchangeability this setting is built around —",
+            "> leaves coverage *inside* the Theorem 4.7 band. That is why the ladder continues past",
+            "> it: without a rung that does exit, \"inside the band\" could not be told apart from",
+            "> \"the band cannot be exited\", and an in-band observation would be no evidence at all.",
+            "",
+        ]
+    if left:
+        lines.append(f"Violations that did leave the band: {', '.join(f'`{x}`' for x in left)}. "
+                     "The band therefore has resolution at these parameters, and the reference "
+                     "arm landing inside it is a real observation rather than an inevitability.")
+    else:
+        lines.append("**No violation tried here leaves the band.** At α = 0.1, α_tol = 0.02, n = 30 "
+                     "the guarantee is too wide to be tested by these interventions, so this claim "
+                     "is reported BLOCKED rather than corroborated. That is a statement about the "
+                     "resolution of the check, not evidence that the theorem is false.")
+    if ctrl.get("arms_from_nodes", 1) > 1:
+        lines += ["", f"_Arms were produced by {ctrl['arms_from_nodes']} separate compute nodes and "
+                      "pooled; `control_is_informative` is re-derived from the pooled arms._"]
+    return "\n".join(lines)
 
 
 EXTRA_BUILDERS = {"C1": _c1, "C2": _c2, "C3": _c3, "C4": _c4, "C5": _c5, "C6": _c6}

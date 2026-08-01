@@ -973,6 +973,13 @@ def _merge_controls(results):
     merged["control_is_informative"] = bool(
         by_name.get("exchangeable", {}).get("inside_band") and left)
     merged["arms_from_nodes"] = len(parts)
+    # Recomputed, never inherited: parts[0] was written by a node that could not
+    # see the other arms, so its interpretation describes a different experiment.
+    merged["interpretation"] = (
+        f"informative: the band is exited by {left}, so an in-band observation is not automatic"
+        if merged["control_is_informative"] else
+        "NOT informative: no exchangeability violation tried here leaves the band, so an "
+        "in-band observation is weak evidence at these parameters")
     return merged
 
 
