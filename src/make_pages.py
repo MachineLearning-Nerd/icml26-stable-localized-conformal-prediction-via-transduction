@@ -334,13 +334,11 @@ def build_supporting_pages(out_dir, analysis, env):
               "Every cell is reachable from this Space alone, starting at the index page.", "",
               "| Claim | Canonical page | Code visible | Data inline | Raw link | Checker | Control | Exact claim tested | Reviewer verdict |",
               "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
-    controls = {"C1": "λ=0 / λ→∞ limits", "C2": "DP (no alignment)", "C3": "oracle + estimated slope",
-                "C4": "DP marginal blow-up", "C5": "no-shift DGP", "C6": "non-exchangeable calibration"}
     for slug, title, cid in CLAIM_PAGES:
         matrix.append(
             f"| {cid} | [{title}](#/{slug}) | [`repro/src/`](repro/src/stage_analysis.py) | yes | "
-            f"[`analysis.json`](repro/results/analysis.json) | `stage_analysis.py` (nonzero exit) | "
-            f"{controls[cid]} | yes | {verdict_badge(v[cid]['verdict'])} |")
+            f"[`analysis.json`](repro/results/analysis.json) | {_checkers(cid)} | "
+            f"{_control_of(v[cid])} | yes | {verdict_badge(v[cid]['verdict'])} |")
 
     method = "\n".join([
         "# Method and environment", "",
@@ -755,6 +753,48 @@ def _transcription_block(a):
               f"n = 30 / 100 / 500 gives {order}, so the maximum is at "
               f"**n = {f_['table2_cqr_argmax_n']}**, not n = 30.", ""]
     return "\n".join(lines)
+
+
+# Which standalone verifier backs each claim, beyond the analysis stage itself.
+# Named per claim rather than blanket-listed so a reader can run the one that
+# matters for the row they are reading.
+_CLAIM_CHECKERS = {
+    "C2": ["verify_shard_merge.py"],
+    "C3": ["verify_shard_merge.py"],
+    "C4": ["verify_transcription.py", "verify_fidelity_gate.py", "verify_shard_merge.py"],
+    "C5": ["verify_transcription.py", "verify_shard_merge.py"],
+}
+
+
+def _checkers(cid):
+    names = ["stage_analysis.py"] + _CLAIM_CHECKERS.get(cid, [])
+    return ", ".join(f"[`{n}`](repro/src/{n})" for n in names) + " (nonzero exit)"
+
+
+def _control_of(v):
+    """Name the control this claim's verdict actually turned on.
+
+    Read from the verdict rather than written down: the Claim 5 control changed
+    from the no-shift arm to m = n, and a hand-maintained table would still be
+    advertising the old one.
+    """
+    integ = v.get("integrity") or {}
+    named = {
+        "m_equals_n_control_reduces_the_gain": "m = n (gating); no-shift reported",
+        "no_shift_control_reduces_the_gain": "no-shift DGP",
+        "control_makes_the_band_informative": None,   # filled from the arms below
+        "negative_control_DP_leaves_band": "DP (no alignment) leaves the band",
+        "envelope_shape_beats_permutation_control": "permuted-lambda envelope",
+        "reproduces_published_table_cell_by_cell": "measured Std + coverage vs the printed table",
+        "unlabeled_sample_is_not_decorative": "same-sample refit floor",
+        "slope_interval_is_bootstrapped_not_assumed": "bootstrapped slope vs the assumed rate",
+    }
+    if "control_makes_the_band_informative" in integ:
+        arms = (v.get("negative_control") or {}).get("violations_that_left_the_band") or []
+        return (f"exchangeability ladder; band exited by {', '.join('`%s`' % a for a in arms)}"
+                if arms else "exchangeability ladder (no arm left the band)")
+    hits = [label for key, label in named.items() if key in integ and label]
+    return "; ".join(hits) if hits else "—"
 
 
 def _dgp_line(a):
