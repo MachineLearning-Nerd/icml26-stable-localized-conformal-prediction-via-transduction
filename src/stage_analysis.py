@@ -747,7 +747,11 @@ def claim4(results):
             }
         per_dataset[ds] = entry
 
-    ran_all = all(v.get("models") for v in per_dataset.values())
+    ran_all = bool(per_dataset) and all(v.get("models") for v in per_dataset.values())
+    marg_in_band = [
+        v["models"][m]["ours_marginal_in_band"]
+        for v in per_dataset.values() if v.get("models") for m in MODELS
+    ]
     beats = [
         v["models"][m]["ours_beats_reference"]
         for v in per_dataset.values() if v.get("models") for m in MODELS
@@ -907,10 +911,10 @@ def claim4(results):
         "claimed_bands_cover_every_published_cell": not (
             viol["published_glcp"] or viol["published_cqr"]
         ),
-        "marginal_coverage_near_nominal": all(
-            v["models"][m]["ours_marginal_in_band"]
-            for v in per_dataset.values() if v.get("models") for m in MODELS
-        ),
+        # `all()` over an empty sweep is True, so the measured cells are collected
+        # first and their count required: a claim about coverage cannot be
+        # corroborated by not having measured any.
+        "marginal_coverage_near_nominal": bool(marg_in_band) and all(marg_in_band),
         "ours_beats_reference_baseline_everywhere": bool(beats and all(beats)),
     }
     # SECONDARY ROUTE -- the same test on our own measurements. It is corroboration,
@@ -1273,8 +1277,13 @@ def claim6(results):
     informative = bool(ctrl and ctrl["control_is_informative"])
     excluded = [k for k, v in obs.items() if v["excluded_by_ci"]]
     outside_pt = [k for k, v in obs.items() if not v["in_band"]]
-    integrity = {"control_makes_the_band_informative": informative}
-    checks = {"no_setting_excluded_by_its_confidence_interval": not excluded}
+    integrity = {
+        "control_makes_the_band_informative": informative,
+        # "no setting was excluded" is trivially true when no setting was measured.
+        # The band check must have something to check before it can corroborate.
+        "settings_were_observed": bool(obs),
+    }
+    checks = {"no_setting_excluded_by_its_confidence_interval": bool(obs) and not excluded}
     return {
         **_adjudicate(checks, integrity),
         "checks": checks,
