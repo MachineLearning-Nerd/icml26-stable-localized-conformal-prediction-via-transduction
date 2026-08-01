@@ -22,17 +22,24 @@ DATASETS = ["CRIME", "BIO", "STAR", "DERMA", "TISSUE"]
 HEADER = r"base SDCP PPI ours ours-sel oracle DP"
 
 
-def std_block(text):
-    """The Std block only.
+BLOCKS = ("Std", "Marginal", "Size")
+
+
+def block(text, name):
+    """One metric block from a table.
 
     Both captions mention the words "Std", "Marginal" and "Size", so the blocks
     are located after the column header rather than by first occurrence.
     """
     head = re.search(HEADER, text)
     rest = text[head.end():]
-    i = rest.index(" Std ") + len(" Std ")
-    ends = [k for k in (rest.find(" Marginal ", i), rest.find(" Size ", i)) if k > 0]
-    return rest[i:min(ends)]
+    i = rest.index(f" {name} ") + len(f" {name} ")
+    ends = [k for k in (rest.find(f" {o} ", i) for o in BLOCKS if o != name) if k > 0]
+    return rest[i:min(ends)] if ends else rest[i:]
+
+
+def std_block(text):
+    return block(text, "Std")
 
 
 def normalize(s):
@@ -47,6 +54,9 @@ def normalize(s):
     s = re.sub(r"\\[,%]", " ", s)
     s = re.sub(r"\(\s*([\d.]+)\s*%\s*\)", r"(\1%)", s)
     s = re.sub(r"\s+", " ", s)
+    # A marked cell renders as "0.956 + 0.956^{+}", so its two copies are not
+    # adjacent and the plain de-duplication below cannot see them.
+    s = re.sub(r"(\d+\.\d+)\s*([+\-])\s*\1\^\{[^{}]*\}", r"\1 \2", s)
     return re.sub(r"\b(\d+\.\d+) \1\b", r"\1", s)
 
 
@@ -71,10 +81,29 @@ def compare(label, got, want, fails):
             fails.append(f"{label} pct[{name}]: paper {pct} != published.py {want['pct'][name]}")
 
 
+def compare_marginal(label, got, want, fails):
+    """Marginal coverage cells. Gated on for Claim 4, so verified like the rest.
+
+    The reproduction's fidelity precondition compares marginal coverage against
+    these numbers, so a transcription slip here would be indistinguishable from a
+    reproduction failure.
+    """
+    if "marginal" not in want:
+        fails.append(f"{label}: published.py carries no marginal row")
+        return
+    if len(got) != 7:
+        fails.append(f"{label}: parsed {len(got)} marginal cells, expected 7")
+        return
+    for k, (value, _) in enumerate(got):
+        if abs(value - want["marginal"][k]) > 1e-9:
+            fails.append(f"{label} marginal[{k}]: paper {value} != "
+                         f"published.py {want['marginal'][k]}")
+
+
 def check_table1(text, fails):
-    block = std_block(text.split("=====")[0])
+    t1 = text.split("=====")[0]
     seen = set()
-    for row in re.split(r"(?=(?:%s) 30)" % "|".join(DATASETS), block)[1:]:
+    for row in re.split(r"(?=(?:%s) 30)" % "|".join(DATASETS), std_block(t1))[1:]:
         ds = row.split()[0]
         seen.add(ds)
         # One row carries the GLCP-type half then the CQR-type half, unlabelled.
@@ -84,6 +113,17 @@ def check_table1(text, fails):
     missing = set(DATASETS) - seen
     if missing:
         fails.append(f"Table 1: rows not found in the paper text: {sorted(missing)}")
+
+    seen = set()
+    for row in re.split(r"(?=(?:%s) 30)" % "|".join(DATASETS), block(t1, "Marginal"))[1:]:
+        ds = row.split()[0]
+        seen.add(ds)
+        got = cells(re.sub(r"^\S+ \d+ / \d+ \d+/\d+", "", row))
+        compare_marginal(f"Table 1 {ds}/GLCP", got[:7], P.TABLE1[ds]["GLCP"], fails)
+        compare_marginal(f"Table 1 {ds}/CQR", got[7:14], P.TABLE1[ds]["CQR"], fails)
+    missing = set(DATASETS) - seen
+    if missing:
+        fails.append(f"Table 1 Marginal: rows not found in the paper text: {sorted(missing)}")
 
 
 def check_table2(text, fails):
@@ -148,8 +188,8 @@ def main():
         for line in fails:
             print("  -", line)
         return 1
-    print("\nOK: every Table 1 and Table 2 Std cell and percentage in published.py "
-          "matches the paper text.")
+    print("\nOK: every Table 1 and Table 2 Std cell, every Table 1 marginal-coverage cell, "
+          "and every percentage annotation in published.py matches the paper text.")
     return 0
 
 
