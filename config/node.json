@@ -1,15 +1,30 @@
 {
   "stage": "real",
-  "note": "Table 1 BIO column at the authors' committed defaults. Repeats [45,50); 5-repeat shard to fit the 1h job cap.",
-  "dataset": "BIO",
-  "script": "Protein.py",
-  "argv": [],
-  "result_dir": "Real_Protein",
-  "result_name": "P_60_1000_2000_4",
+  "note": "Table 1 STAR column; needs 60 10 1 1 to select the published target agent. Repeats [0,5); 5-repeat shard to fit the 1h job cap.",
+  "dataset": "STAR",
+  "script": "Achieve.py",
+  "argv": [
+    60,
+    10,
+    1,
+    1,
+    "[50]",
+    "[0., 0.002, 0.005, 0.0075, 0.01, 0.02, 0.05, 0.075, 0.1, 0.12, 0.15]",
+    "[10.]"
+  ],
+  "result_dir": "Real_Star",
+  "result_name": "P_60_1048_2446_10_1_1",
   "n_reported": 30,
   "n_over_m": "30/1000",
+  "source_patches": [
+    [
+      "achievedata = pd.read_spss(\"../Dataset/achievementRatio/STAR_Students.sav\")",
+      "achievedata = pd.read_csv(\"../Dataset/achieve.csv\", low_memory=False)\n    for _c in achievedata.columns:\n        if not pd.api.types.is_numeric_dtype(achievedata[_c]):\n            achievedata[_c] = achievedata[_c].astype(\"category\")"
+    ]
+  ],
+  "deviation": "The artifact ships Dataset/achieve.csv, a labelled CSV export of STAR_Students.sav, but Achieve.py reads the .sav, which the artifact does not contain. One exact-string substitution swaps the reader and restores the categorical dtype that pd.read_spss would have produced (read_csv yields plain strings, so the script's .cat accessor fails). Equivalence checks: 11601x379; identical string categories (RURAL/INNER CITY/SUBURBAN/URBAN, MALE/FEMALE, ...); 3754 rows with non-null hsacttot = 1308 target + 2446 auxiliary, which reproduces the authors' own result-file name P_60_1048_2446_10_1_1 (m = 1308-60-200 = 1048, N = 2446). Category ORDER is immaterial here because the script re-encodes each category by its frequency rank (cat.codes.value_counts() is frequency-sorted), so the resulting numeric features are invariant to whether categories are ordered by SPSS label code or alphabetically.",
   "shard": [
-    45,
-    50
+    0,
+    5
   ]
 }
