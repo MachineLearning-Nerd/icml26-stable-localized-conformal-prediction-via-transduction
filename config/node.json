@@ -1,15 +1,11 @@
 {
-  "stage": "real",
-  "note": "Table 1 TISSUE column at the authors' committed defaults. Repeats [45,50); 5-repeat shard to fit the 1h job cap.",
-  "dataset": "TISSUE",
-  "script": "Tissue.py",
-  "argv": [],
-  "result_dir": "Real_Tissue",
-  "result_name": "P_30_1000_2000_0.07",
-  "n_reported": 30,
-  "n_over_m": "30/1000",
+  "stage": "simshard",
+  "note": "Table 2 logabs-n30-m500 repeats [20,25); 5-repeat shard for the 1h cap.",
+  "dtype": "logabs",
+  "n": 30,
+  "m": 500,
   "shard": [
-    45,
-    50
+    20,
+    25
   ]
 }
