@@ -757,6 +757,74 @@ def _transcription_block(a):
     return "\n".join(lines)
 
 
+def _c4_fidelity(v):
+    """Does the reproduction match the printed table, and could that have failed?
+
+    This is the precondition the whole claim turns on, so the reader has to be
+    able to see both the disagreements and how much resolution the tests had --
+    a comparison that could not have failed is not evidence that it passed.
+    """
+    tf = v.get("table_fidelity")
+    if not tf:
+        return ""
+    out = ["", "## Does this reproduction match the printed table?", "",
+           tf["rule"],
+           "",
+           "The rule was fixed in `repro/.openresearch/artifacts/c4_preregistration.md` and",
+           "committed while STAR, DERMA and TISSUE — 30 of the 50 cells — had produced no numbers,",
+           f"so it could not be tuned toward an outcome. Methods tested: "
+           f"{', '.join('`' + m + '`' for m in tf['methods_tested'])}.",
+           "",
+           "| Test | Result |", "| --- | --- |",
+           f"| Reproduced Std brackets the published Std, every cell | {f(tf['stds_agree'])} |",
+           f"| Reproduced marginal coverage brackets the published value | {f(tf['marginals_agree'])} |",
+           f"| The Std test has enough resolution to mean anything | "
+           f"{f(tf['std_gate_is_informative'])} |", ""]
+
+    for key, title in (("std_disagreements", "Std cells that disagree"),
+                       ("marginal_disagreements", "Marginal-coverage cells that disagree")):
+        bad = tf.get(key) or {}
+        if not bad:
+            out += [f"**{title}:** none.", ""]
+            continue
+        out += [f"### {title}", "",
+                "| Cell | published | reproduced | 95% bootstrap CI |", "| --- | --- | --- | --- |"]
+        for cell, d in sorted(bad.items()):
+            ci = d["ci95"]
+            out.append(f"| {cell} | {f(d['published'])} | {f(d['reproduced'])} | "
+                       f"[{f(ci[0])}, {f(ci[1])}] |")
+        out.append("")
+
+    res = tf.get("resolution") or {}
+    if res:
+        out += ["### How much resolution the Std comparison has", "",
+                tf["resolution_note"], "",
+                "| Cell | median Std CI width | published baseline spread | can tell the "
+                "baselines apart |",
+                "| --- | --- | --- | --- |"]
+        for cell, r in sorted(res.items()):
+            out.append(f"| {cell} | {f(r['median_std_ci_width'])} | "
+                       f"{f(r['published_baseline_spread'])} | "
+                       f"{f(r['can_distinguish_the_baselines'])} |")
+        coarse = tf.get("cells_where_the_std_gate_is_too_coarse") or []
+        out += ["",
+                (f"**Too coarse to be evidence in {len(coarse)} of {len(res)} cells** "
+                 f"({', '.join(sorted(coarse))}). Where the interval is wider than the gap "
+                 "between the three published baselines, it could not tell them apart, so "
+                 "agreement with any one of them carries no information. "
+                 "`repro/src/verify_fidelity_gate.py` demonstrates this rather than arguing it: "
+                 "it injects a defect into a reproduced Std and requires the test to notice, and "
+                 "it exits nonzero wherever the test does not."
+                 if coarse else
+                 "Every cell's interval is narrower than the spread between the published "
+                 "baselines, so the comparison could have failed."),
+                ""]
+    disc = v.get("revision_disclosure")
+    if disc:
+        out += ["### Disclosure: this precondition was rewritten after it failed", "", disc, ""]
+    return "\n".join(out)
+
+
 def _c4_reference(v):
     """Which baseline each percentage divides by, paper against reproduction.
 
@@ -839,7 +907,7 @@ def _c4(a):
                            f"{f(r['pct_published'], 1)} |")
             out += ["", f"Reference baseline used: `{m['reference']['a_ref_method']}` "
                         f"(Std {f(m['reference']['a_ref_std'])}); oracle Std {f(m['reference']['oracle_std'])}.", ""]
-    out += [_c4_reference(v)]
+    out += [_c4_fidelity(v), _c4_reference(v)]
     g, c = v["reproduced_glcp_pct_range"], v["reproduced_cqr_pct_range"]
     out += ["## Adjudicating the claim's stated bands", "",
             "| Band | Claimed | Reproduced range (`ours`) | Claim covers every cell |",
