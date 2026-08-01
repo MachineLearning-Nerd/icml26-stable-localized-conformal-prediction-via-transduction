@@ -1,10 +1,15 @@
 {
-  "stage": "smoke",
-  "note": "Baseline timing probe. Sizes the full Table 1 / Table 2 reproductions; concludes nothing scientific.",
-  "sim_probes": [
-    {"dtype": "logabs", "n": 30, "m": 500, "repeats": 2}
-  ],
-  "real_probes": [
-    {"script": "Crime.py", "repeats": 2, "argv": [30, 500, 0, 15, "[50]", "[0.0,0.001,0.002,0.005,0.01,0.02]", "[10.0]"], "timeout_s": 2400}
+  "stage": "real",
+  "note": "Table 1 TISSUE column at the authors' committed defaults. Repeats [0,10); merged with the other four shards before summarising.",
+  "dataset": "TISSUE",
+  "script": "Tissue.py",
+  "argv": [],
+  "result_dir": "Real_Tissue",
+  "result_name": "P_30_1000_2000_0.07",
+  "n_reported": 30,
+  "n_over_m": "30/1000",
+  "shard": [
+    0,
+    10
   ]
 }
