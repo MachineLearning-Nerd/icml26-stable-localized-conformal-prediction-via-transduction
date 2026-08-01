@@ -21,6 +21,11 @@ def ensure():
     # because the stages patch `procedure.py` in place.
     override = os.environ.get("STCP_UPSTREAM")
     if override:
+        # A broken override must abort, never fall through to the clone below:
+        # cloning would silently produce results from a different working tree
+        # than the one the caller pinned, and would do it once per node.
+        if not os.path.isdir(os.path.join(override, ".git")):
+            raise RuntimeError(f"STCP_UPSTREAM={override!r} is not a git checkout")
         head = subprocess.check_output(
             ["git", "-C", override, "rev-parse", "HEAD"], text=True).strip()
         if head != UPSTREAM_SHA:
