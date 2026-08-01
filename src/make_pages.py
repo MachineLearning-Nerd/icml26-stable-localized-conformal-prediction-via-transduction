@@ -61,20 +61,51 @@ def compute_block(prov):
         return "_All nodes ran on Hugging Face `cpu-upgrade`._"
     from collections import Counter
     where = Counter(v.get("where", "?") for v in prov.values())
-    secs = [v["seconds"] for v in prov.values() if v.get("seconds")]
-    rows = ["| Where | Nodes | Cores per node | Median node runtime |",
-            "| --- | --- | --- | --- |"]
+    def _node_seconds(v):
+        """Runtime of one node, whichever way it was measured.
+
+        Local nodes are timed inside the process (`seconds`). Hugging Face nodes
+        are timed by the drain from launch to the poll that saw them finish, so
+        their figure includes up to one poll interval of queueing and overstates
+        compute -- the conservative direction against the 1h cap. Reading only
+        `seconds` reported 37 HF nodes as "not recorded" while their timings sat
+        in the same file.
+        """
+        if v.get("seconds"):
+            return float(v["seconds"]), "measured in-process"
+        if v.get("minutes_since_launch_at_detection"):
+            return float(v["minutes_since_launch_at_detection"]) * 60.0, "launch to detection"
+        return None, None
+
+    secs = [s for s, _ in map(_node_seconds, prov.values()) if s]
+    rows = ["| Where | Nodes | Cores per node | Median node runtime | How timed |",
+            "| --- | --- | --- | --- | --- |"]
     for w in sorted(where):
         sub = [v for v in prov.values() if v.get("where") == w]
-        cores = sorted({str(v.get("cores")) for v in sub})
-        # A few early nodes were harvested from job logs that carried no timing
-        # field, so the median is over the nodes that do report one.
-        timed = sorted(v["seconds"] for v in sub if v.get("seconds"))
+        # The HF drain harvests a RESULT block and does not re-record the core
+        # count, so those nodes carry None. Rather than print None or hard-code
+        # 8, fall back to what the in-process measurement on the same flavor
+        # actually found, and say that is where the number came from.
+        seen_cores = sorted({str(v["cores"]) for v in sub if v.get("cores")})
+        if not seen_cores:
+            same_flavor = {str(v["cores"]) for v in prov.values()
+                           if v.get("cores") and v.get("flavor") == "cpu-upgrade"}
+            seen_cores = ([f"{c} †" for c in sorted(same_flavor)] if same_flavor
+                          else ["not recorded"])
+        cores = seen_cores
+        pairs = [p for p in map(_node_seconds, sub) if p[0]]
+        timed = sorted(s for s, _ in pairs)
         med = f"{timed[len(timed) // 2]:.0f} s" if timed else "not recorded"
-        rows.append(f"| {w} | {where[w]} | {', '.join(cores)} | {med} |")
+        how = ", ".join(sorted({h for _, h in pairs})) or "—"
+        if timed and len(timed) < len(sub):
+            med += f" (over {len(timed)}/{len(sub)})"
+        rows.append(f"| {w} | {where[w]} | {', '.join(cores)} | {med} | {how} |")
     total = sum(secs)
+    dagger = ("\n† not recorded per node by the job harvester; this is the allocation the "
+              "in-process measurement found on the same `cpu-upgrade` flavor."
+              if any("†" in c for r in rows for c in r.split("|")) else "")
     rows += ["", f"Total recorded node time: **{total/3600:.1f} node-hours** across "
-                 f"{len(prov)} nodes.",
+                 f"{len(prov)} nodes.{dagger}",
              "",
              "Hugging Face `cpu-upgrade` grants 8 cores via the cgroup while the container "
              "advertises 64, so thread pools are pinned to the quota; locally each slot is pinned "
