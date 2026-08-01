@@ -135,5 +135,11 @@ CLAIM5_TARGETS = {"GLCP": 31.2, "CQR": 16.3}
 
 # Theorem 4.7 guarantee band at alpha=0.1, alpha_tol=0.02, n=30.
 THM47_BAND = (0.88, 0.9 + 0.02 + 1.0 / 31.0)
-# The narrower band the Table 1/2 captions use only for -/+ annotation.
-TABLE_ANNOTATION_BAND = (0.89, 0.9 + 1.0 / 31.0)
+# Annotation bands used for the -/+ superscripts. The two tables do NOT agree:
+#   Table 1 (RealAnalysis/sum_tab.py:34):  [0.9-0.01, 0.901 + 1/n]   -> [0.89, 0.934333]
+#   Table 2 (SimuAnalysis/sum_tab.py:56):  [0.9-0.01, 0.9   + 1/(n+1)] -> [0.89, 0.932258]
+# The captions state the second form for both. Matching each table's own code is
+# what reproduces its published marks and hence its reference baselines.
+REAL_ANNOTATION_BAND = (0.89, 0.901 + 1.0 / 30.0)
+SIM_ANNOTATION_BAND = (0.89, 0.9 + 1.0 / 31.0)
+TABLE_ANNOTATION_BAND = SIM_ANNOTATION_BAND

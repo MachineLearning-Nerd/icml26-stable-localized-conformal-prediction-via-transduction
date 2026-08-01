@@ -30,12 +30,20 @@ MODEL_KEYS = {"GLCP": "GLCP", "CQR": "SCC"}
 
 
 def _marks(mar, n_reported, tol=0.01):
-    """`-` below 1-alpha-0.01, `+` above 1-alpha+1/(n+1); see Table 1 caption."""
+    """The authors' real-data thresholds, verbatim from RealAnalysis/sum_tab.py:34.
+
+    Note these are NOT the Table 1 caption's `[1-a-0.01, 1-a+1/(n+1)]`. The code
+    uses `0.901 + 1/n`, i.e. [0.89, 0.93433] at n=30 rather than [0.89, 0.93226].
+    The difference is load-bearing: DERMA/GLCP `ours` has published marginal
+    0.933, which the caption's formula would flag `+` (and so exclude from the
+    reference baseline) but the code does not -- and the paper prints it
+    unmarked. Matching the code is what reproduces the published table.
+    """
     out = []
     for v in mar:
         if v < 0.9 - tol:
             out.append("-")
-        elif v > 0.9 + 1.0 / (n_reported + 1):
+        elif v > 0.901 + 1.0 / n_reported:
             out.append("+")
         else:
             out.append("")

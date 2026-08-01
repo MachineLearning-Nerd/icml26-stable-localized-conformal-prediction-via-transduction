@@ -153,10 +153,11 @@ def claim2(results):
         for model in MODELS:
             v = tab["models"][model]["row"]["DP"]["marginal"]
             dp[f"{name}/{model}"] = {"marginal": v, "in_band": bool(lo <= v <= up)}
+    rlo, rup = P.REAL_ANNOTATION_BAND
     for ds, tab in results["real"].items():
         for model in MODELS:
             v = tab["summary"][model]["DP"]["marginal"]
-            dp[f"{ds}/{model}"] = {"marginal": v, "in_band": bool(lo <= v <= up)}
+            dp[f"{ds}/{model}"] = {"marginal": v, "in_band": bool(rlo <= v <= rup)}
 
     dp_out = [k for k, v in dp.items() if not v["in_band"]]
     checks = {
@@ -239,7 +240,7 @@ def claim3(results):
 
 def claim4(results):
     """Table 1 across five real datasets, cell by cell against the published values."""
-    lo, up = P.TABLE_ANNOTATION_BAND
+    lo, up = P.REAL_ANNOTATION_BAND
     per_dataset, glcp_pcts, cqr_pcts = {}, [], []
     for ds, pub in P.TABLE1.items():
         got = results["real"].get(ds)
