@@ -1,10 +1,11 @@
 {
-  "stage": "smoke",
-  "note": "Baseline timing probe. Sizes the full Table 1 / Table 2 reproductions; concludes nothing scientific.",
-  "sim_probes": [
-    {"dtype": "logabs", "n": 30, "m": 500, "repeats": 2}
-  ],
-  "real_probes": [
-    {"script": "Crime.py", "repeats": 2, "argv": [30, 500, 0, 15, "[50]", "[0.0,0.001,0.002,0.005,0.01,0.02]", "[10.0]"], "timeout_s": 2400}
+  "stage": "simshard",
+  "note": "LogAbs n=500 m=500, repeats [30,40) of the paper's 50.",
+  "dtype": "logabs",
+  "n": 500,
+  "m": 500,
+  "shard": [
+    30,
+    40
   ]
 }
