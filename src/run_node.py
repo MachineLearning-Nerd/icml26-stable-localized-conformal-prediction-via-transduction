@@ -78,6 +78,15 @@ def main():
     result["environment"] = env
     emit(f"RESULT_{stage.upper()}", result)
 
+    # A verifier must fail loudly. Any stage may set `exit_code`; a nonzero one
+    # propagates so the job itself is marked failed rather than quietly "done".
+    code = int(result.get("exit_code", 0))
+    if result.get("status") in ("FAILED", "MISSING_RESULT"):
+        code = code or 1
+    if code:
+        print(f"VERIFIER FAILED: exit_code={code}", flush=True)
+        sys.exit(code)
+
 
 if __name__ == "__main__":
     main()
