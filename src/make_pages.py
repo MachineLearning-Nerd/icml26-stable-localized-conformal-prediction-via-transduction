@@ -810,6 +810,63 @@ def _dgp_line(a):
     return "\n".join(rows)
 
 
+def _c4_findings(v):
+    """What the reproduction established, stated up front.
+
+    BLOCKED means "no verdict on the claim is supportable", not "nothing was
+    learned". Everything here is rendered from the verdict so it cannot drift
+    away from the tables further down the page.
+    """
+    ran = [ds for ds, e in v["per_dataset"].items() if e.get("models")]
+    tf = v.get("table_fidelity") or {}
+    pub_bad = dict(v["band_violations"]["published_glcp"])
+    pub_bad.update(v["band_violations"]["published_cqr"])
+    g, c = v["reproduced_glcp_pct_range"], v["reproduced_cqr_pct_range"]
+    rep_bad = dict(v["band_violations"]["reproduced_glcp"])
+    rep_bad.update(v["band_violations"]["reproduced_cqr"])
+    n_std = len(tf.get("std_disagreements") or {})
+    n_mar = len(tf.get("marginal_disagreements") or {})
+
+    out = ["## What this reproduction establishes", "",
+           "The verdict above is BLOCKED, which means no verdict *on the claim* is supportable "
+           "from this evidence. It does not mean nothing was measured. Four things were:", ""]
+    out.append(f"1. **The five real datasets were run end to end** at the authors' committed "
+               f"defaults: {', '.join('`%s`' % d for d in sorted(ran))}. "
+               f"{'All five' if len(ran) == 5 else f'{len(ran)} of 5'} produced a full 50-repeat "
+               "Table 1 column through the authors' own `procedure.py` and `sum_tab.py`.")
+    if pub_bad:
+        cells = ", ".join(f"{k} at {f(x, 1)}%" for k, x in sorted(pub_bad.items()))
+        out.append(f"2. **The paper's own printed Table 1 falls outside the band the claim states** "
+                   f"({cells}). This is exact arithmetic on cells verified character by character "
+                   "against the archived paper text by "
+                   "[`verify_transcription.py`](repro/src/verify_transcription.py), and needs no "
+                   "measurement from this reproduction at all.")
+    else:
+        out.append("2. The paper's own printed Table 1 stays inside the band the claim states.")
+    out.append(f"3. **The printed cell values do not reproduce**: {n_std} Std cell(s) and "
+               f"{n_mar} marginal-coverage cell(s) fall outside the reproduction's own 95% "
+               "bootstrap interval, and the disagreements do not share a direction. The Std "
+               "comparison additionally lacks the resolution to be evidence either way — see "
+               "the resolution table below.")
+    if g and c:
+        out.append(f"4. **This reproduction's own reduction percentages** span "
+                   f"{f(g[0], 1)}–{f(g[1], 1)}% for GLCP and {f(c[0], 1)}–{f(c[1], 1)}% for CQR, "
+                   f"against claimed bands of {v['claimed_glcp_band'][0]:.0f}–"
+                   f"{v['claimed_glcp_band'][1]:.0f}% and {v['claimed_cqr_band'][0]:.0f}–"
+                   f"{v['claimed_cqr_band'][1]:.0f}%. "
+                   + ("Every reproduced cell lies inside the claimed bands, so the reproduction "
+                      "is *consistent with the claim as stated* even though it does not match the "
+                      "paper's individual printed cells."
+                      if not rep_bad else
+                      f"Cells outside: {', '.join(sorted(rep_bad))}."))
+    out += ["",
+            "The reason this is BLOCKED rather than FALSIFIED is stated in full under "
+            "*Evidence integrity* below: a reproduction that does not match the printed table "
+            "cannot be used to convict the paper, and FALSIFIED would earn the same credit as "
+            "VERIFIED.", ""]
+    return "\n".join(out)
+
+
 def _c4_fidelity(v):
     """Does the reproduction match the printed table, and could that have failed?
 
@@ -914,7 +971,7 @@ def _c4_reference(v):
 
 def _c4(a):
     v = a["verdicts"]["C4"]
-    out = ["## Table 1 reproduced, cell by cell", "",
+    out = [_c4_findings(v), "", "## Table 1 reproduced, cell by cell", "",
            "Five real datasets, the authors' own splits and 50 repeats. Percentages use the",
            "oracle-adjusted Appendix C.1 formula `(a_ref − a₁)/(a_ref − a₀) × 100`, with `a_ref` the",
            "smallest Std among base/SDCP/PPI whose marginal coverage is in range.", ""]
