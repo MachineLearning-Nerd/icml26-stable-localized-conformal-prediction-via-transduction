@@ -1194,7 +1194,8 @@ def _c4_findings(v):
     n_std = len(tf.get("std_disagreements") or {})
     n_mar = len(tf.get("marginal_disagreements") or {})
 
-    out = [f"## Verdict: {v['verdict']}", ""]
+    # The page header already states the verdict; this block explains it.
+    out = [f"## Why the verdict is {v['verdict']}", ""]
     if v["verdict"] != "FALSIFIED":
         out += ["This page is generated from the verdict; see *Evidence integrity* below for "
                 f"what is unresolved. Blocked by: {', '.join(v.get('blocked_by') or []) or '—'}.",
