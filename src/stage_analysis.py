@@ -19,6 +19,7 @@ import real_reduce
 import shard_reduce
 import verify_claim4_band as C4B
 import verify_thm42_certificate as C2C
+import verify_thm46_certificate as C3C
 
 MODELS = ["GLCP", "CQR"]
 RNG = np.random.default_rng(20260801)
@@ -752,6 +753,13 @@ def claim3(results):
         "lambda_curves_have_enough_valid_points": bool(
             lam_points and min(lam_points) >= 3),
     }
+    # Theorem 4.6 is universally quantified, so the simulation is scoped
+    # corroboration and cannot carry the claim alone. Registered in
+    # c3_certificate_preregistration.md while this claim's slope was still null:
+    # the certificate is an ADDITIONAL gate, so C3 is now strictly harder to pass
+    # than it was, and its own preconditions are folded in below.
+    cert = C3C.run()
+    integrity.update({f"certificate_{k}": v for k, v in cert["integrity"].items()})
     checks = {
         "base_variance_slope_consistent_with_minus_one": bool(ci and ci[0] <= -1.0 <= ci[1]),
         "stcp_std_decreases_with_lambda_in_valid_region": (
@@ -762,6 +770,7 @@ def claim3(results):
         checks["stcp_std_decreases_with_m_at_fixed_n"] = bool(
             m_decreasing and all(m_decreasing.values())
         )
+    checks.update({f"certificate_{k}": v for k, v in cert["checks"].items()})
     return {
         **_adjudicate(checks, integrity),
         "checks": checks,
@@ -771,6 +780,14 @@ def claim3(results):
             "bootstrap": boot,
             "ci_method": "resampling the 50 repeats at each n independently, refitting the slope",
         },
+        "certificate": cert,
+        "route_note": (
+            "Two routes, both required. Theorem 4.6 is universally quantified over "
+            "distributions, n, m and lambda, so the simulation below is scoped "
+            "corroboration and cannot carry the claim alone; the certificate covers "
+            "parts (a) and (c) of the claim completely and part (b)'s algebraic "
+            "skeleton only. What the certificate does not reach is listed by name "
+            "rather than left to be assumed."),
         "slope_informativeness": {
             "ci95": ci,
             "excludes_no_decay": slope_informative,
