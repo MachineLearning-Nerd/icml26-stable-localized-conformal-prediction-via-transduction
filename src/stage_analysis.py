@@ -681,6 +681,36 @@ def claim4(results):
             (agree if ok else disagree)[f"{ds}/{m}"] = {
                 "reproduced": r["pct_reproduced"], "published": pub, "ci95": ci}
 
+    # Which baseline does the percentage divide by, in the paper vs here? The
+    # formula is (a_ref - ours)/(a_ref - oracle) with a_ref the smallest eligible
+    # baseline Std. That argmin can flip on a Monte-Carlo difference far smaller
+    # than the percentage change it causes, so a percentage mismatch does not by
+    # itself mean the underlying cells disagree. Recorded per cell so the two
+    # explanations can be told apart.
+    reference_flips = {}
+    for ds, v in per_dataset.items():
+        if not v.get("models"):
+            continue
+        for m in MODELS:
+            pub_std = P.TABLE1[ds][m]["std"]
+            pub_marks = P.TABLE1[ds][m]["marks"]
+            pub_elig = [i for i in (0, 1, 2) if not pub_marks[i]] or [0, 1, 2]
+            pub_ref_i = min(pub_elig, key=lambda i: pub_std[i])
+            ref = v["models"][m]["reference"]
+            rep_std = {lab: v["models"][m]["rows"][lab]["std_reproduced"]
+                       for lab in ("base", "SDCP", "PPI")}
+            reference_flips[f"{ds}/{m}"] = {
+                "published_reference": P.METHODS[pub_ref_i],
+                "published_reference_std": pub_std[pub_ref_i],
+                "reproduced_reference": ref["a_ref_method"],
+                "reproduced_reference_std": ref["a_ref_std"],
+                "flipped": P.METHODS[pub_ref_i] != ref["a_ref_method"],
+                "published_baseline_stds": {P.METHODS[i]: pub_std[i] for i in (0, 1, 2)},
+                "reproduced_baseline_stds": rep_std,
+                "max_abs_baseline_difference": max(
+                    abs(rep_std[P.METHODS[i]] - pub_std[i]) for i in (0, 1, 2)),
+            }
+
     # How wide are the agreement intervals? "the published value lies inside our CI"
     # is only evidence if the CI is narrower than the thing being tested. A CI
     # wider than the claimed band could not fail, so the ratio is published and a
@@ -763,7 +793,8 @@ def claim4(results):
         "published_glcp_pct_by_dataset": pub_glcp,
         "published_cqr_pct_by_dataset": pub_cqr,
         "cell_agreement": {"agree": agree, "disagree": disagree,
-                           "power": agreement_power},
+                           "power": agreement_power,
+                           "reference_baseline": reference_flips},
         "reproduced_band_check_used_in_verdict": bool(agreement_power["test_can_discriminate"]),
         "reproduced_bands_hold": bands_hold,
         "adjudication_route": (
