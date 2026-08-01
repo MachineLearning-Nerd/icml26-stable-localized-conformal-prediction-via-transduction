@@ -103,6 +103,11 @@ def _summarise(res_dict, sum_tab, n_reported):
         marks = _marks(rows[:, 0], n_reported)
         eligible = [i for i in (0, 1, 2) if not marks[i]] or [0, 1, 2]
         a_ref = float(np.min(rows[eligible, 2]))
+        # Recover which lambda slot `sum_compare_result` picked for `ours`, so the
+        # percentage can be bootstrapped from that slot's per-repeat sizes.
+        slcp_std = np.asarray(res_dict[f"{key} SLCP"][3], dtype=float).reshape(-1)
+        hits = np.flatnonzero(np.abs(slcp_std - rows[3, 2]) <= 1e-12)
+        selected_slot = int(hits[0]) if hits.size else None
         a_0 = float(rows[5, 2])
         table = {}
         for ri, label in enumerate(METHOD_LABELS):
@@ -115,6 +120,7 @@ def _summarise(res_dict, sum_tab, n_reported):
                 )
             table[label] = entry
         table["_cls"] = bool(cls)
+        table["_selected_lambda_slot"] = selected_slot
         table["_reference"] = {
             "a_ref_std": a_ref,
             "a_ref_method": METHOD_LABELS[int(eligible[int(np.argmin(rows[eligible, 2]))])],

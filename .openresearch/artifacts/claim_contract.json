@@ -93,15 +93,18 @@
     },
     "improvement_formula": "(a_ref - a_1) / (a_ref - a_0) * 100, a_ref = min Std over base/SDCP/PPI with in-range marginal coverage, a_0 = oracle Std",
     "must_hold": [
-     "all five datasets run to completion at 50 repeats with the authors' splits",
-     "for each dataset and each base type, StCP 'ours' Std is strictly below the reference baseline Std",
-     "marginal coverage of 'ours' and 'ours-sel' stays within [1-alpha-0.01, 1-alpha+1/(n+1)] = [0.89, 0.93226]",
-     "the reproduced per-cell improvement percentages are compared against the published per-cell values, and the observed GLCP and CQR ranges are reported in full"
+     "all five datasets run to completion on the authors' own entry scripts and data",
+     "each reproduced oracle-adjusted percentage has a bootstrap CI covering the published value",
+     "marginal coverage of `ours` is inside the authors' real-data annotation band on every cell",
+     "every reproduced GLCP cell lies within 20-48% and every CQR cell within 6-29%, allowing 0.5 point of slack for the claim's integer endpoints"
     ],
     "adjudication": "The claim's stated GLCP band 20-48% is checked against every reproduced cell, including TISSUE, whose published value is 13.5% and therefore already falls outside the stated band. The verdict must state whether the band holds as written, holds only for a subset, or is contradicted.",
-    "fails_if": "the pipeline cannot run the paper's datasets, or reproduced Std reductions contradict the published per-cell values beyond Monte-Carlo error"
+    "fails_if": "any reproduced cell falls outside the claimed band by more than the endpoint rounding slack"
    },
-   "negative_control": "The direct plug-in (DP) variant must show the severe upward marginal-coverage deviation the paper reports, confirming the alignment step is what buys validity."
+   "negative_control": "The direct plug-in (DP) variant must show the severe upward marginal-coverage deviation the paper reports, confirming the alignment step is what buys validity.",
+   "adjudication": "Cell-by-cell agreement with the printed table is a PRECONDITION, not a check that can be traded off: if the reproduction does not match Table 1 the verdict is BLOCKED, because a disagreeing reproduction cannot convict the paper of anything. Only once agreement holds does a band violation become a falsification.",
+   "paper_internal_finding": "The claimed bands do not cover the paper's own Table 1. GLCP spans 13.5-48.4% against a claimed 20-48%. STAR/GLCP (48.4) and BIO/CQR (29.3) are within half a point of the stated integer endpoints and are treated as rounding. TISSUE/GLCP at 13.5% is 6.5 points below the claimed floor and cannot be explained by rounding. This holds independently of the reproduction.",
+   "vacuity_guard": "The 20-48% and 6-29% bands are wide, so 'the reproduction landed in the band' is weak on its own. The binding evidence is per-cell agreement with the published value inside a bootstrap CI over the 50 repeats, which a wide band cannot absorb."
   },
   {
    "id": "C5",

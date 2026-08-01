@@ -547,12 +547,15 @@ def _c4(a):
                 r = m["rows"][meth]
                 out.append(f"| {meth} | {f(r['std_reproduced'])} | {f(r['std_published'])} | "
                            f"{f(r['marginal_reproduced'])} | {f(r['marginal_published'])} |")
+            ci = m.get("pct_ci95")
             out += ["",
-                    "| Variant | % reduction (repro) | % reduction (paper) |",
-                    "| --- | --- | --- |"]
+                    "| Variant | % reduction (repro) | 95% CI over repeats | % reduction (paper) |",
+                    "| --- | --- | --- | --- |"]
             for lab in ("ours", "ours-sel"):
                 r = m["rows"][lab]
-                out.append(f"| {lab} | {f(r['pct_reproduced'], 1)} | {f(r['pct_published'], 1)} |")
+                cistr = (f"{f(ci[0], 1)} – {f(ci[1], 1)}" if ci and lab == "ours" else "—")
+                out.append(f"| {lab} | {f(r['pct_reproduced'], 1)} | {cistr} | "
+                           f"{f(r['pct_published'], 1)} |")
             out += ["", f"Reference baseline used: `{m['reference']['a_ref_method']}` "
                         f"(Std {f(m['reference']['a_ref_std'])}); oracle Std {f(m['reference']['oracle_std'])}.", ""]
     g, c = v["reproduced_glcp_pct_range"], v["reproduced_cqr_pct_range"]
@@ -565,6 +568,19 @@ def _c4(a):
             f"| CQR | {v['claimed_cqr_band'][0]:.0f}–{v['claimed_cqr_band'][1]:.0f}% | "
             f"{f(c[0], 1) if c else '—'}–{f(c[1], 1) if c else '—'}% | "
             f"{f(v['claimed_cqr_band_covers_all_reproduced_cells'])} |", "",
+            "", "### Where the claimed bands break", "",
+            f"Cells are counted as violating only when they sit more than "
+            f"{v['band_rounding_slack_pct']} of a point outside the band — the claim states integer",
+            "endpoints, so a tighter rule would manufacture violations out of the endpoints' own rounding.",
+            "",
+            "| Source | GLCP violations | CQR violations |", "| --- | --- | --- |",
+            f"| paper's Table 1 | {v['band_violations']['published_glcp'] or 'none'} | "
+            f"{v['band_violations']['published_cqr'] or 'none'} |",
+            f"| this reproduction | {v['band_violations']['reproduced_glcp'] or 'none'} | "
+            f"{v['band_violations']['reproduced_cqr'] or 'none'} |",
+            "",
+            v["paper_internal_finding"],
+            "",
             "Note, independently of this reproduction: the **paper's own** published GLCP `ours`",
             f"values span {v['published_glcp_pct_range'][0]:.1f}–{v['published_glcp_pct_range'][1]:.1f}%,",
             "because TISSUE is 13.5%. The claim's stated lower edge of 20% therefore does not cover",
