@@ -122,6 +122,10 @@ def run(cfg, upstream_root):
     sys.path.insert(0, os.path.join(upstream_root, "RealAnalysis"))
     sys.path.insert(0, os.path.join(upstream_root, "Main"))
 
+    import patch_procedure
+
+    procedure_patch = patch_procedure.build(upstream_root)
+
     script = cfg["script"]
     argv = [str(a) for a in cfg.get("argv", [])]
     repeats = cfg.get("repeats")
@@ -177,13 +181,12 @@ def run(cfg, upstream_root):
     n_reported = int(cfg["n_reported"])
     summary = _summarise(res_dict, sum_tab, n_reported)
 
-    raw = {
-        k: [np.asarray(a).tolist() for a in v] for k, v in res_dict.items()
-    }
+    per_repeat = res_dict.pop("_per_repeat", None)
+    raw = {k: [np.asarray(a).tolist() for a in v] for k, v in res_dict.items()}
     out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results")
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, f"real_{cfg['dataset']}.json"), "w") as f:
-        json.dump({"summary": summary, "raw": raw}, f, indent=1)
+        json.dump({"summary": summary, "raw": raw, "per_repeat": per_repeat}, f, indent=1)
 
     return {
         "kind": "real",
@@ -195,8 +198,10 @@ def run(cfg, upstream_root):
         "n_over_m": cfg.get("n_over_m"),
         "repeats": repeats or 50,
         "source_patches": source_patches,
+        "procedure_patch": procedure_patch,
         "seconds": round(seconds, 1),
         "summary": summary,
         "raw": raw,
+        "per_repeat": per_repeat,
         "improvement_formula": "(a_ref - a_1) / (a_ref - a_0) * 100  [RealAnalysis/sum_tab.py:61, Appendix C.1]",
     }
