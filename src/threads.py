@@ -40,7 +40,10 @@ def cpu_quota():
 
 
 def pin(n=None):
-    n = n or cpu_quota()
+    # An explicit budget wins over the detected quota: when several shards run
+    # side by side on one machine each must claim a slice, or they oversubscribe
+    # the same cores and every one of them slows down.
+    n = n or int(os.environ.get("STCP_THREADS") or 0) or cpu_quota()
     for var in (
         "OMP_NUM_THREADS",
         "MKL_NUM_THREADS",
@@ -50,6 +53,28 @@ def pin(n=None):
     ):
         os.environ[var] = str(n)
     return n
+
+
+def pin_torch(n=None):
+    """Pin PyTorch's own pools, which the environment variables do not fully cover.
+
+    `OMP_NUM_THREADS` reaches the intra-op pool, but the *inter-op* pool defaults
+    to the machine's core count regardless. With several shards on one host that
+    multiplies: four slots at 8 inter-op threads each produced a load average of
+    33 on 8 cores, which is the same oversubscription that makes this workload
+    run an order of magnitude slow.
+    """
+    n = n or PINNED
+    try:
+        import torch
+    except ImportError:
+        return None
+    torch.set_num_threads(int(n))
+    try:
+        torch.set_num_interop_threads(1)
+    except RuntimeError:
+        pass       # already fixed by earlier parallel work; intra-op pin still applies
+    return torch.get_num_threads(), torch.get_num_interop_threads()
 
 
 PINNED = pin()

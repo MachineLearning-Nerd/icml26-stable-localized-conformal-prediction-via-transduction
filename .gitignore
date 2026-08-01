@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 SimResult/
 Log/
+src/_sitepin/

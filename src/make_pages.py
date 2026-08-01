@@ -48,6 +48,39 @@ def checks_table(checks):
     return "\n".join(rows)
 
 
+def compute_block(prov):
+    """Where each node actually ran, per node, with cores and runtime.
+
+    The campaign began on Hugging Face `cpu-upgrade` and moved to a local machine
+    once cloud contention made runs both slow and expensive. Both are recorded
+    rather than implied: a reader must be able to see which machine produced any
+    given number, and results land in an identical layout either way, so nothing
+    downstream distinguishes them.
+    """
+    if not prov:
+        return "_All nodes ran on Hugging Face `cpu-upgrade`._"
+    from collections import Counter
+    where = Counter(v.get("where", "?") for v in prov.values())
+    secs = [v.get("seconds", 0) for v in prov.values() if v.get("seconds")]
+    rows = ["| Where | Nodes | Cores per node | Median node runtime |",
+            "| --- | --- | --- | --- |"]
+    for w in sorted(where):
+        sub = [v for v in prov.values() if v.get("where") == w]
+        cores = sorted({str(v.get("cores")) for v in sub})
+        med = sorted(v.get("seconds", 0) for v in sub)
+        med = med[len(med) // 2] if med else 0
+        rows.append(f"| {w} | {where[w]} | {', '.join(cores)} | {med:.0f} s |")
+    total = sum(secs)
+    rows += ["", f"Total recorded node time: **{total/3600:.1f} node-hours** across "
+                 f"{len(prov)} nodes.",
+             "",
+             "Hugging Face `cpu-upgrade` grants 8 cores via the cgroup while the container "
+             "advertises 64, so thread pools are pinned to the quota; locally each slot is pinned "
+             "to its own share for the same reason. Unpinned, this workload spin-contends and runs "
+             "20-40x slower."]
+    return "\n".join(rows)
+
+
 def env_block(env):
     return "\n".join([
         "| Field | Value |", "| --- | --- |",
@@ -110,6 +143,10 @@ def page_claim(slug, title, cid, analysis, env, extra=""):
         "## Environment, seeds and compute",
         "",
         env_block(env),
+        "",
+        "### Where each node ran",
+        "",
+        compute_block(analysis.get("compute_provenance")),
         "",
         "Seeds are the authors' own: the shared source-side model is seeded"
         " `setseed(repeats+100)` and repeat *r* is seeded `setseed(1+r)`, so every"

@@ -26,6 +26,8 @@ import types
 
 import numpy as np
 
+import threads
+
 METHOD_LABELS = ["base", "SDCP", "PPI", "ours", "ours-sel", "oracle", "DP"]
 METRICS = ["marginal", "size", "std", "cond_miscoverage"]
 MODEL_KEYS = {"GLCP": "GLCP", "CQR": "SCC"}
@@ -131,6 +133,26 @@ def _summarise(res_dict, sum_tab, n_reported):
     return out
 
 
+def _sitecustomize_dir():
+    """Directory holding a `sitecustomize.py` that pins torch's pools on import."""
+    d = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_sitepin")
+    os.makedirs(d, exist_ok=True)
+    n = int(os.environ.get("STCP_THREADS") or 0) or threads.PINNED
+    with open(os.path.join(d, "sitecustomize.py"), "w") as fh:
+        fh.write(
+            "import os\n"
+            "for _v in ('OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS',\n"
+            "           'NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS'):\n"
+            f"    os.environ[_v] = '{n}'\n"
+            "try:\n"
+            "    import torch\n"
+            f"    torch.set_num_threads({n})\n"
+            "    torch.set_num_interop_threads(1)\n"
+            "except Exception:\n"
+            "    pass\n")
+    return d
+
+
 def _run_streaming(cmd, cwd, env, tail_lines=400):
     """Run the entry script, echoing its output to this job's log as it arrives.
 
@@ -223,6 +245,14 @@ def run(cfg, upstream_root):
 
     shard = cfg.get("shard")
     env = dict(os.environ)
+    # The entry script runs as a CHILD process, so `run_node`'s torch pinning does
+    # not reach it. Environment variables cover the intra-op pool but PyTorch's
+    # inter-op pool still defaults to the machine's core count, which multiplies
+    # across concurrent shards -- four slots produced a load average of 33 on 8
+    # cores. A `sitecustomize` on the child's path pins it at interpreter start,
+    # without touching the authors' scripts.
+    env["PYTHONPATH"] = os.pathsep.join(
+        [_sitecustomize_dir(), env.get("PYTHONPATH", "")]).rstrip(os.pathsep)
     if shard:
         env["STCP_SHARD_LO"], env["STCP_SHARD_HI"] = str(shard[0]), str(shard[1])
 

@@ -29,6 +29,13 @@ def _load_json(path):
         return json.load(f)
 
 
+def _load_json_opt(path, default=None):
+    """Load a file that may legitimately be absent."""
+    if not os.path.exists(path):
+        return {} if default is None else default
+    return _load_json(path)
+
+
 # ---------------------------------------------------------------- simulation
 
 
@@ -934,20 +941,24 @@ def _load_real(real_dir, upstream_root):
     """
     import stage_real
 
+    # Group by the dataset recorded INSIDE each payload, not by filename. Shard
+    # files are named differently depending on where they ran, and deriving the
+    # dataset from the name would split one dataset across several groups.
     groups, provenance = {}, {}
     for path in sorted(glob.glob(os.path.join(real_dir, "*.json"))):
-        name = os.path.basename(path)[:-5]
-        base = name.rsplit("-s", 1)[0] if "-s" in name else name
-        groups.setdefault(base, []).append((name, _load_json(path)))
+        payload = _load_json(path)
+        base = payload.get("dataset") or os.path.basename(path)[:-5]
+        groups.setdefault(base, []).append((os.path.basename(path)[:-5], payload))
 
     out = {}
     for base, items in groups.items():
-        whole = [d for n, d in items if n == base]
+        whole = [d for n, d in items if d.get("kind") == "real" and not d.get("shard")]
         if whole:
             out[base] = whole[0]
             provenance[base] = {"mode": "single_job", "repeats": whole[0].get("repeats", 50)}
             continue
         shards = [d for _, d in items]
+        _assert_tiles([tuple(x["shard"]) for x in shards], base)
         merged, meta = real_reduce.merge(shards)
         sum_tab = stage_real.load_sum_tab(upstream_root)
         n_reported = int(shards[0]["n_reported"])
@@ -1008,6 +1019,8 @@ def run(cfg, upstream_root):
         "settings_merged": sorted(res["sim"]),
         "datasets": sorted(res["real"]),
         "real_provenance": res["_real_shards"],
+        "compute_provenance": _load_json_opt(
+            os.path.join(root, "results", "compute_provenance.json")),
         "verdicts": verdicts,
         "self_scored_points": points,
         "not_full_credit": failed,
