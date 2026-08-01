@@ -76,12 +76,28 @@ reporting Std rounded to 2 decimals while the percentage is computed from
 unrounded values. The two exactly-matching anchors (48.4%, 31.2%, 16.3%) pin the
 formulas.
 
-### Marginal-coverage annotation
+### Marginal-coverage annotation — the two tables use *different* thresholds
 
-`−` marks coverage below `1 − α − 0.01 = 0.89`; `+` marks coverage above
-`1 − α + 1/(n+1)`. With the reported `n = 30`, the upper edge is
-`0.9 + 1/31 = 0.93226`. A competitor carrying either mark is excluded from
-`a_ref` (Appendix C.1 and `sum_tab.py:15–19`).
+Both captions state the same rule: `−` below `1 − α − 0.01 = 0.89`, `+` above
+`1 − α + 1/(n+1)`. The authors' code does not agree with the caption for
+Table 1:
+
+| Table | Code | Upper edge at `n = 30` |
+|---|---|---|
+| Table 1 | `RealAnalysis/sum_tab.py:34` — `data > 0.901 + 1/n` | `0.934333` |
+| Table 2 | `SimuAnalysis/sum_tab.py:56` — `value > target + 1/(n+1)` | `0.932258` |
+
+This is load-bearing, not cosmetic. DERMA / GLCP / `ours` has published marginal
+coverage `0.933`. Under the caption's formula that is above the upper edge and
+would be flagged `+` — which would also exclude it from consideration and change
+the reference baseline `a_ref`. Under the code's formula it is below `0.934333`
+and is printed unmarked, which is exactly what the paper shows. Reproducing the
+published table therefore requires matching each table's own code, so that is
+what the verifier does (`REAL_ANNOTATION_BAND` / `SIM_ANNOTATION_BAND` in
+`src/published.py`).
+
+A competitor carrying either mark is excluded from `a_ref` (Appendix C.1 and
+`RealAnalysis/sum_tab.py:15–19`).
 
 ---
 
