@@ -70,6 +70,34 @@ Shards ship sufficient statistics, not raw arrays: `tools.summation` needs only
 per-repeat means plus a per-test-point sum over repeats, so a shard emits
 ~19k numbers instead of ~1M.
 
+The five real datasets are sharded the same way and for the same reason.
+`procedure.py` fixes every shared object — the source predictor, the base
+generator, the test-group clustering — before its repeat loop and then seeds
+each repeat with `seed_rep = seed + 1 + rep`, so repeats `[lo, hi)` reproduce
+exactly the rows a 50-repeat process would compute. `src/patch_procedure.py`
+slices both repeat loops and both `summation_real*` functions, which makes each
+shard's pickle a valid run over its own repeats in the authors' own keying.
+
+What cannot be sharded is the *summary*. `sum_compare_result` chooses one λ per
+method by comparing statistics across the whole grid, and that choice has to be
+made once on all 50 repeats — five separate choices on ten repeats each is a
+different estimator. So shards ship their raw per-key aggregates and per-repeat
+means, and `src/real_reduce.py` rebuilds a single 50-repeat `resDict` before the
+authors' selection logic runs on it. Exactness per column:
+
+| Column | Merged how | Exact? |
+|---|---|---|
+| `mar`, `size` | mean of shard means, equal repeats per shard | exact |
+| `mar_std`, `size_std` | recomputed from the pooled per-repeat means, which is the definition | exact |
+| `local_cov` | mean of shard values | **approximate** — it is a weighted mean whose per-group weights differ by shard |
+
+`local_cov` feeds no selection in `sum_compare_result` and no quantity in
+Claim 4; it is reported for context only. Every column Table 1 prints for the
+claim — marginal coverage, mean size, Std, and every improvement percentage —
+is exact. `src/real_reduce.py` refuses to merge shards that are non-contiguous
+or unequal in width, since the unweighted average is only valid for equal
+repeat counts.
+
 ## Instrumentation added
 
 - `src/threads.py` — pins OpenMP/MKL/OpenBLAS/torch pools to the cgroup quota
