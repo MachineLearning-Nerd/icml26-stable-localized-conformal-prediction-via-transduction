@@ -1,0 +1,64 @@
+{
+  "schema_version": 3,
+  "repository": "MachineLearning-Nerd/icml26-stable-localized-conformal-prediction-via-transduction",
+  "phase": "published_scoped_partial_audit_with_claim_3_blocked_and_claim_4_source_falsified",
+  "next_action": "Run verify_final.py from this repository or a fresh clone to verify the live 170-branch GitHub state.",
+  "github": {
+    "url": "https://github.com/MachineLearning-Nerd/icml26-stable-localized-conformal-prediction-via-transduction",
+    "default_branch": "main",
+    "former_name": "icml26-repro-lSMTccAN61-stable-localized-conformal-prediction-via-transduction"
+  },
+  "branch_layout": {
+    "expected_count": 170,
+    "families": {"main": 1, "check": 2, "control": 18, "real": 78, "sim": 71},
+    "forbidden_prefixes": ["orx/"],
+    "forbidden_names": ["master"]
+  },
+  "audit": {
+    "overall_verdict": "PARTIAL_CLAIMS_1_TO_2_VERIFIED_SCOPED_CLAIM_3_BLOCKED_CLAIM_4_SOURCE_BAND_FALSIFIED_CLAIM_5_GLCP_SCOPED_VERIFIED_CLAIM_6_REPAIRED_PROOF_SCOPED_VERIFIED",
+    "publication_boundary": "C3_INCOMPLETE_CALIBRATION_SIZES_C4_SOURCE_TABLE_CONTRADICTION_C6_PRINTED_ENDPOINT_REPAIRED_NO_FULL_PAPER_REPRODUCTION",
+    "publication_allowed": false,
+    "score_claim": false,
+    "official_author_endorsement": false,
+    "self_scored_points": 10,
+    "self_scored_total": 12,
+    "current_official_score": null,
+    "claims": {
+      "C1": "verified_scoped",
+      "C2": "verified_scoped_proof_algebra",
+      "C3": "blocked_empirical_rate_evidence",
+      "C4": "falsified_source_table_band",
+      "C5": "verified_scoped_glcp_contract",
+      "C6": "verified_scoped_repaired_proof_audit"
+    }
+  },
+  "attribution": {
+    "name": "MachineLearning-Nerd",
+    "email": "MachineLearning-Nerd@users.noreply.github.com",
+    "canonical_identity": "MachineLearning-Nerd <MachineLearning-Nerd@users.noreply.github.com>"
+  },
+  "history": {
+    "recovery_bundle_sha256": "dd8df3f733a5e1ba93ef0ad7d4f94f0f7c7ad3c599df2eaf597b5f8a81c0ebe1",
+    "published_main_parent": "3680296d342696cdf62716f209541629d2482b74",
+    "expected_reachable_commits": 278,
+    "old_identity_present": false,
+    "rewrite_backup_refs_removed": true
+  },
+  "documentation": {
+    "readme": true,
+    "claim_evidence": true,
+    "source_audit": true,
+    "environment": true,
+    "report": true,
+    "citation": true,
+    "author_thank_you": true,
+    "status": true,
+    "machine_readable_verdicts": true,
+    "final_verifier": true
+  },
+  "live_verification": {
+    "remote_push_required_before_pass": true,
+    "fresh_clone_required_before_pass": true,
+    "command": "python3 verify_final.py"
+  }
+}
