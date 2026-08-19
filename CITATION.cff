@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If this audit repository helps your work, please cite the paper and the repository."
+title: "Stable Localized Conformal Prediction via Transduction"
+type: article
+authors:
+  - family-names: Min
+    given-names: Yinjie
+  - family-names: Peng
+    given-names: Liuhua
+  - family-names: Zou
+    given-names: Changliang
+date-released: 2026-08-19
+repository-code: "https://github.com/MachineLearning-Nerd/icml26-stable-localized-conformal-prediction-via-transduction"
+url: "https://arxiv.org/abs/2605.01452"
+identifiers:
+  - type: arxiv
+    value: "2605.01452"
+    description: "Paper identifier"

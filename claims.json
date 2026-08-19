@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "repository": "MachineLearning-Nerd/icml26-stable-localized-conformal-prediction-via-transduction",
+  "paper": {
+    "title": "Stable Localized Conformal Prediction via Transduction",
+    "authors": ["Yinjie Min", "Liuhua Peng", "Changliang Zou"],
+    "arxiv": "2605.01452",
+    "openreview": "lSMTccAN61",
+    "upstream_repository": "https://github.com/OswinMin/StCP",
+    "upstream_commit": "1d8df7614d49eada881426742688ba75fec631b9"
+  },
+  "overall_verdict": "PARTIAL_CLAIMS_1_TO_2_VERIFIED_SCOPED_CLAIM_3_BLOCKED_CLAIM_4_SOURCE_BAND_FALSIFIED_CLAIM_5_GLCP_SCOPED_VERIFIED_CLAIM_6_REPAIRED_PROOF_SCOPED_VERIFIED",
+  "publication_boundary": "C3_INCOMPLETE_CALIBRATION_SIZES_C4_SOURCE_TABLE_CONTRADICTION_C6_PRINTED_ENDPOINT_REPAIRED_NO_FULL_PAPER_REPRODUCTION",
+  "publication_allowed": false,
+  "score_claim": false,
+  "official_author_endorsement": false,
+  "self_scored_points": 10,
+  "self_scored_total": 12,
+  "official_rejudge": {
+    "status": "not_recorded",
+    "current_score_not_claimed": true
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "status": "verified_scoped",
+      "anchor": "Equation 7, Section 3, Algorithm 1",
+      "evidence": ["src/verify_transcription.py", "results/analysis.json", "check/invariants", "control/*"],
+      "boundary": "Formulation and provenance are checked; the source-swap null result is reported, not adjudicated."
+    },
+    {
+      "id": "C2",
+      "status": "verified_scoped_proof_algebra",
+      "anchor": "Theorem 4.2 with Assumption 4.1",
+      "evidence": ["src/verify_thm42_certificate.py", "results/analysis.json", "check/invariants"],
+      "boundary": "The certificate checks proof algebra, not theorem assumptions or universal empirical behavior."
+    },
+    {
+      "id": "C3",
+      "status": "blocked_empirical_rate_evidence",
+      "anchor": "Theorem 4.6 with Lemma 4.4 and Assumption 4.5",
+      "evidence": ["src/verify_thm46_certificate.py", "results/analysis.json", "results/EVAL.md", "sim/*"],
+      "boundary": "The required all-three-n sweep and bootstrapped informative slope interval are absent."
+    },
+    {
+      "id": "C4",
+      "status": "falsified_source_table_band",
+      "anchor": "Table 1, Section 5.1, Appendix C.1/C.3",
+      "evidence": ["src/verify_claim4_band.py", "results/analysis.json", "real/*", ".openresearch/artifacts/source_audit.md"],
+      "boundary": "The source table contradicts its stated GLCP band; STAR/TISSUE reruns remain incomplete."
+    },
+    {
+      "id": "C5",
+      "status": "verified_scoped_glcp_contract",
+      "anchor": "Table 2, Section 5.2, Appendix C.2",
+      "evidence": ["src/verify_claim4_band.py", "results/analysis.json", "sim/*", "control/*"],
+      "boundary": "The registered GLCP contract passes; the CQR n=30 ordering sentence is off by 0.4 points in the paper table."
+    },
+    {
+      "id": "C6",
+      "status": "verified_scoped_repaired_proof_audit",
+      "anchor": "Theorem 4.7, Section 3.1",
+      "evidence": ["src/verify_thm47_certificate.py", "results/analysis.json", "check/exchangeability", "control/*"],
+      "boundary": "The printed lower endpoint is repaired by a finite-sample term or inflated quantile level."
+    }
+  ]
+}

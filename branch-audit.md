@@ -77,3 +77,12 @@ This gives `15 + 15 + 11 + 15 + 15 = 71` simulation branches. Branch names ident
 | C6, Theorem 4.7 | `check/exchangeability`, `control/*` | Exchangeability controls and exhaustive selection-band repair audit. |
 
 The exact adjudication is in [`results/analysis.json`](results/analysis.json); this document is the branch-to-purpose map, not a substitute for the evidence records.
+
+## Identity and publication boundary
+
+All reachable commits in the cleaned history use the exact canonical identity
+`MachineLearning-Nerd <MachineLearning-Nerd@users.noreply.github.com>`. The branch
+names describe lineage only; they are not separate paper conclusions. The
+repository is a scoped reproduction audit with an incomplete C3 evidence path,
+a source-table contradiction for C4, and a repaired-proof qualification for C6.
+It is not an official publication, score, or author endorsement.

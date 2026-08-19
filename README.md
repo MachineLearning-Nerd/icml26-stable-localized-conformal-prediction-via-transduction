@@ -38,6 +38,10 @@ The committed evidence is an auditable reproduction snapshot, not a claim that e
 
 The machine-readable source of truth is [`results/analysis.json`](results/analysis.json), with the short report in [`results/EVAL.md`](results/EVAL.md). “Verified” is always scoped to the registered contract and evidence listed above; it is not an independent endorsement of every theorem assumption or every paper sentence.
 
+Repository-level audit boundary: `PARTIAL_CLAIMS_1_TO_2_VERIFIED_SCOPED_CLAIM_3_BLOCKED_CLAIM_4_SOURCE_BAND_FALSIFIED_CLAIM_5_GLCP_SCOPED_VERIFIED_CLAIM_6_REPAIRED_PROOF_SCOPED_VERIFIED`.
+
+Publication boundary: `C3_INCOMPLETE_CALIBRATION_SIZES_C4_SOURCE_TABLE_CONTRADICTION_C6_PRINTED_ENDPOINT_REPAIRED_NO_FULL_PAPER_REPRODUCTION`. `publication_allowed=false`, `score_claim=false`, and `official_author_endorsement=false`. The repository records 10/12 self-scored audit points; no current official score or author endorsement is claimed. See [`STATUS.md`](STATUS.md), [`CLAIM_EVIDENCE.md`](CLAIM_EVIDENCE.md), [`REPORT.md`](REPORT.md), and [`reproduction_verdicts.json`](reproduction_verdicts.json).
+
 ## How each claim is produced
 
 The claim contract is recorded in [`.openresearch/artifacts/claim_contract.json`](.openresearch/artifacts/claim_contract.json). The implementation and evidence path are:
@@ -105,4 +109,4 @@ Thank you to Yinjie Min, Liuhua Peng, and Changliang Zou for making the paper, i
 
 ## Attribution
 
-This collection repository is maintained by [MachineLearning-Nerd](https://github.com/MachineLearning-Nerd). The cleaned history uses the exact commit identity `MachineLearning-Nerd <37579156+MachineLearning-Nerd@users.noreply.github.com>`.
+This collection repository is maintained by [MachineLearning-Nerd](https://github.com/MachineLearning-Nerd). The cleaned history uses the exact commit identity `MachineLearning-Nerd <MachineLearning-Nerd@users.noreply.github.com>`.

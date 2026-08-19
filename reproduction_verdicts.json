@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "repository": "MachineLearning-Nerd/icml26-stable-localized-conformal-prediction-via-transduction",
+  "overall_verdict": "PARTIAL_CLAIMS_1_TO_2_VERIFIED_SCOPED_CLAIM_3_BLOCKED_CLAIM_4_SOURCE_BAND_FALSIFIED_CLAIM_5_GLCP_SCOPED_VERIFIED_CLAIM_6_REPAIRED_PROOF_SCOPED_VERIFIED",
+  "publication_boundary": "C3_INCOMPLETE_CALIBRATION_SIZES_C4_SOURCE_TABLE_CONTRADICTION_C6_PRINTED_ENDPOINT_REPAIRED_NO_FULL_PAPER_REPRODUCTION",
+  "publication_allowed": false,
+  "score_claim": false,
+  "official_author_endorsement": false,
+  "self_scored_points": 10,
+  "self_scored_total": 12,
+  "current_official_score": null,
+  "claims": {
+    "C1": {"status": "verified_scoped", "source": "results/analysis.json -> verdicts.C1"},
+    "C2": {"status": "verified_scoped_proof_algebra", "source": "results/analysis.json -> verdicts.C2"},
+    "C3": {"status": "blocked_empirical_rate_evidence", "source": "results/analysis.json -> verdicts.C3"},
+    "C4": {"status": "falsified_source_table_band", "source": "results/analysis.json -> verdicts.C4"},
+    "C5": {"status": "verified_scoped_glcp_contract", "source": "results/analysis.json -> verdicts.C5"},
+    "C6": {"status": "verified_scoped_repaired_proof_audit", "source": "results/analysis.json -> verdicts.C6"}
+  }
+}
