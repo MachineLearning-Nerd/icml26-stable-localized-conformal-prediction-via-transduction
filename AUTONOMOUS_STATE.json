@@ -39,8 +39,8 @@
   },
   "history": {
     "recovery_bundle_sha256": "dd8df3f733a5e1ba93ef0ad7d4f94f0f7c7ad3c599df2eaf597b5f8a81c0ebe1",
-    "published_main_parent": "3680296d342696cdf62716f209541629d2482b74",
-    "expected_reachable_commits": 278,
+    "published_main_parent": "24fbd50ba710b351a07c964248c211cc52e11a45",
+    "expected_reachable_commits": 279,
     "old_identity_present": false,
     "rewrite_backup_refs_removed": true
   },

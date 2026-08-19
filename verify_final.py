@@ -68,9 +68,13 @@ def expected_branches() -> set[str]:
     return branches
 
 
-def remote_branch_names() -> set[str]:
+def remote_branch_map() -> dict[str, str]:
     output = git("ls-remote", "--heads", "origin")
-    return {line.split("\t", 1)[1].removeprefix("refs/heads/") for line in output.splitlines() if line.strip()}
+    return {
+        line.split("\t", 1)[1].removeprefix("refs/heads/"): line.split("\t", 1)[0]
+        for line in output.splitlines()
+        if line.strip()
+    }
 
 
 def local_branch_names() -> set[str]:
@@ -79,13 +83,10 @@ def local_branch_names() -> set[str]:
 
 
 def ref_for_branch(branch: str) -> str:
-    for ref in (branch, f"origin/{branch}", f"refs/remotes/origin/{branch}"):
-        result = subprocess.run(["git", "show-ref", "--verify", "--quiet", f"refs/heads/{ref}"], cwd=ROOT)
+    for ref in (f"refs/heads/{branch}", f"refs/remotes/origin/{branch}"):
+        result = subprocess.run(["git", "show-ref", "--verify", "--quiet", ref], cwd=ROOT)
         if result.returncode == 0:
             return ref
-        result = subprocess.run(["git", "show-ref", "--verify", "--quiet", f"refs/remotes/origin/{branch}"], cwd=ROOT)
-        if result.returncode == 0:
-            return f"origin/{branch}"
     fail(f"missing_branch_ref_{branch.replace('/', '_')}")
     raise AssertionError
 
@@ -107,11 +108,15 @@ def load_json(path: str) -> dict:
 
 def main() -> None:
     expected = expected_branches()
-    remote = remote_branch_names()
+    remote_map = remote_branch_map()
+    remote = set(remote_map)
     if remote != expected:
         fail(f"remote_branches_expected_{len(expected)}_observed_{len(remote)}")
     if local_branch_names() - expected or "main" not in local_branch_names():
         fail("local_branch_refs_are_not_a_subset_with_main")
+    for branch, remote_sha in remote_map.items():
+        if git("rev-parse", ref_for_branch(branch)) != remote_sha:
+            fail(f"remote_tip_mismatch_{branch.replace('/', '_')}")
     symref = git("ls-remote", "--symref", "origin", "HEAD")
     if "refs/heads/main\tHEAD" not in symref:
         fail("remote_default_branch_is_not_main")
